@@ -92,3 +92,4 @@ export default function ModuleGuard({ children, moduleCode, adminOnly = false })
 
   return children;
 }
+

@@ -11,7 +11,7 @@ export function buildUserModulesMatrix(
   return profiles.map(profile => {
     const userModList = modules.map(mod => {
       const link = userModules.find(
-        um => um.user_id === profile.id && um.module_id === mod.id
+        um => um.user_id === profile.id && (um.module_id === mod.id || um.module_id === mod.code_module)
       );
       
       // Si l'utilisateur est admin, le toggle est actif par défaut
