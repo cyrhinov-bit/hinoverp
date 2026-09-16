@@ -1,0 +1,10 @@
+import { contextBridge, ipcRenderer } from 'electron';
+
+contextBridge.exposeInMainWorld('electronAPI', {
+  getPlatform: () => process.platform,
+  getVersion: () => process.env.npm_package_version || '1.0.0',
+  minimize: () => ipcRenderer.send('window-minimize'),
+  maximize: () => ipcRenderer.send('window-maximize'),
+  close: () => ipcRenderer.send('window-close')
+});
+

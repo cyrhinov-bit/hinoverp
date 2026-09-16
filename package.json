@@ -1,0 +1,19 @@
+{
+  "name": "hinov-suivi-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ERP Interne Modulaire et Multi-Services Hinov ERP",
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:web": "turbo run dev --filter=@hinov/web",
+    "dev:desktop": "turbo run dev --filter=@hinov/desktop",
+    "dev:mobile": "turbo run dev --filter=@hinov/mobile",
+    "build": "turbo run build",
+    "lint": "turbo run lint"
+  },
+  "devDependencies": {
+    "supabase": "^2.117.0",
+    "turbo": "^2.4.0"
+  },
+  "packageManager": "pnpm@11.10.0"
+}
