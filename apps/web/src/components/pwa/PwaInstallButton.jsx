@@ -279,3 +279,4 @@ PwaInstallButton.propTypes = {
   variant: PropTypes.oneOf(['header', 'sidebar', 'button']),
   sx: PropTypes.object
 };
+

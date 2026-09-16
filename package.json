@@ -9,6 +9,7 @@
     "dev:desktop": "turbo run dev --filter=@hinov/desktop",
     "dev:mobile": "turbo run dev --filter=@hinov/mobile",
     "build": "turbo run build",
+    "build:web": "pnpm --filter @hinov/core build && pnpm --filter @hinov/web build",
     "lint": "turbo run lint"
   },
   "devDependencies": {
