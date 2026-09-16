@@ -28,7 +28,8 @@ import { useAdminTheme } from 'context/ThemeCustomizationContext';
  */
 export default function BsbDataTable({
   columns = [],
-  rows = [],
+  rows,
+  data,
   searchPlaceholder = 'Rechercher...',
   footerRow,
   emptyMessage = 'Aucune donnée disponible dans le tableau',
@@ -43,19 +44,34 @@ export default function BsbDataTable({
   const [orderBy, setOrderBy] = useState('');
   const [order, setOrder] = useState('asc');
 
+  // Récupération sécurisée des données (supporte `rows` et `data`)
+  const rawRows = useMemo(() => {
+    if (Array.isArray(rows)) return rows;
+    if (Array.isArray(data)) return data;
+    return [];
+  }, [rows, data]);
+
   // Filtrage multi-colonnes en temps réel
   const filteredRows = useMemo(() => {
-    if (!searchQuery.trim()) return rows;
+    if (!searchQuery.trim()) return rawRows;
     const query = searchQuery.toLowerCase().trim();
 
-    return rows.filter((row) => {
-      return columns.some((col) => {
+    return rawRows.filter((row) => {
+      const inColumns = columns.some((col) => {
         const val = row[col.id];
         if (val === null || val === undefined) return false;
         return String(val).toLowerCase().includes(query);
       });
+      if (inColumns) return true;
+
+      return Object.values(row).some((val) => {
+        if (typeof val === 'string' || typeof val === 'number') {
+          return String(val).toLowerCase().includes(query);
+        }
+        return false;
+      });
     });
-  }, [rows, columns, searchQuery]);
+  }, [rawRows, columns, searchQuery]);
 
   // Tri interactif
   const sortedRows = useMemo(() => {
@@ -301,7 +317,7 @@ export default function BsbDataTable({
       >
         <Typography variant="body2" sx={{ color: '#777777', fontSize: '0.825rem' }}>
           Affichage de <strong>{startEntry}</strong> à <strong>{endEntry}</strong> sur <strong>{totalEntries}</strong> entrées
-          {searchQuery && ` (filtré à partir de ${rows.length} entrées au total)`}
+          {searchQuery && ` (filtré à partir de ${rawRows.length} entrées au total)`}
         </Typography>
 
         <ButtonGroup
