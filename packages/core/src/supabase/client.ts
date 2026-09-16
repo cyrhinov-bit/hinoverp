@@ -10,9 +10,11 @@ declare const process: {
 };
 
 export function getSupabaseClient(supabaseUrl?: string, supabaseKey?: string): SupabaseClient | null {
-  const envObj = typeof process !== 'undefined' && process.env ? process.env : {};
-  const url = supabaseUrl || envObj.VITE_SUPABASE_URL || envObj.SUPABASE_URL;
-  const key = supabaseKey || envObj.VITE_SUPABASE_ANON_KEY || envObj.SUPABASE_ANON_KEY;
+  const metaEnv = typeof import.meta !== 'undefined' && (import.meta as any).env ? (import.meta as any).env : {};
+  const procEnv = typeof process !== 'undefined' && process.env ? process.env : {};
+
+  const url = supabaseUrl || metaEnv.VITE_SUPABASE_URL || procEnv.VITE_SUPABASE_URL || procEnv.SUPABASE_URL;
+  const key = supabaseKey || metaEnv.VITE_SUPABASE_ANON_KEY || procEnv.VITE_SUPABASE_ANON_KEY || procEnv.SUPABASE_ANON_KEY;
 
   if (!url || !key || url.includes('votre-projet') || key.includes('votre-cle')) {
     return null;

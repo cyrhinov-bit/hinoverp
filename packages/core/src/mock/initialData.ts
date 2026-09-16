@@ -70,7 +70,7 @@ export const INITIAL_MODULES: ERPModule[] = [
   }
 ];
 
-// Profil Administrateur Principal pour l'initialisation Production
+// Profils pour l'initialisation Production
 export const INITIAL_PROFILES: Profile[] = [
   {
     id: 'usr-admin-1',
@@ -83,10 +83,22 @@ export const INITIAL_PROFILES: Profile[] = [
     actif: true,
     avatar_url: '',
     created_at: new Date().toISOString()
+  },
+  {
+    id: 'usr-staff-2',
+    nom: 'A. Bosso',
+    poste: 'Collaborateur & Gestionnaire Opérationnel',
+    email: 'a.bosso@hinovgroup.com',
+    password: '123456',
+    telephone: '+225 05 00 00 00 00',
+    role: 'USER',
+    actif: true,
+    avatar_url: '',
+    created_at: new Date().toISOString()
   }
 ];
 
-// Habilitations initiales : Administrateur a tous les modules activés
+// Habilitations initiales
 export const INITIAL_USER_MODULES: UserModule[] = [
   { id: 'um-1', user_id: 'usr-admin-1', module_id: 'mod-1', is_enabled: true },
   { id: 'um-2', user_id: 'usr-admin-1', module_id: 'mod-2', is_enabled: true },
@@ -94,7 +106,14 @@ export const INITIAL_USER_MODULES: UserModule[] = [
   { id: 'um-4', user_id: 'usr-admin-1', module_id: 'mod-4', is_enabled: true },
   { id: 'um-5', user_id: 'usr-admin-1', module_id: 'mod-5', is_enabled: true },
   { id: 'um-6', user_id: 'usr-admin-1', module_id: 'mod-6', is_enabled: true },
-  { id: 'um-7', user_id: 'usr-admin-1', module_id: 'mod-7', is_enabled: true }
+  { id: 'um-7', user_id: 'usr-admin-1', module_id: 'mod-7', is_enabled: true },
+  { id: 'um-8', user_id: 'usr-staff-2', module_id: 'mod-1', is_enabled: true },
+  { id: 'um-9', user_id: 'usr-staff-2', module_id: 'mod-2', is_enabled: true },
+  { id: 'um-10', user_id: 'usr-staff-2', module_id: 'mod-3', is_enabled: true },
+  { id: 'um-11', user_id: 'usr-staff-2', module_id: 'mod-4', is_enabled: true },
+  { id: 'um-12', user_id: 'usr-staff-2', module_id: 'mod-5', is_enabled: true },
+  { id: 'um-13', user_id: 'usr-staff-2', module_id: 'mod-6', is_enabled: true },
+  { id: 'um-14', user_id: 'usr-staff-2', module_id: 'mod-7', is_enabled: true }
 ];
 
 // Données Métier de Production : Vides pour saisie des données réelles

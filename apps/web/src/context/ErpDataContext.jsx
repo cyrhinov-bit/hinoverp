@@ -73,17 +73,21 @@ export function ErpDataProvider({ children }) {
       const s = localStorage.getItem('hinov_profiles');
       if (s) {
         const parsed = JSON.parse(s);
-        const adminIndex = parsed.findIndex((p) => (p.email || '').toLowerCase() === 'e.gnonskan@hinovgroup.com');
-        if (adminIndex === -1) {
-          const merged = [INITIAL_PROFILES[0], ...parsed.filter((p) => p.id !== 'usr-admin-1')];
-          localStorage.setItem('hinov_profiles', JSON.stringify(merged));
-          return merged;
-        } else {
-          // Synchroniser les paramètres maîtres
-          parsed[adminIndex] = { ...parsed[adminIndex], ...INITIAL_PROFILES[0] };
-          localStorage.setItem('hinov_profiles', JSON.stringify(parsed));
-          return parsed;
-        }
+        const map = new Map();
+        parsed.forEach((p) => {
+          if (p && p.email) map.set(p.email.trim().toLowerCase(), p);
+        });
+        INITIAL_PROFILES.forEach((initP) => {
+          const key = initP.email.trim().toLowerCase();
+          if (!map.has(key)) {
+            map.set(key, initP);
+          } else if (initP.role === 'ADMIN') {
+            map.set(key, { ...map.get(key), ...initP });
+          }
+        });
+        const merged = Array.from(map.values());
+        localStorage.setItem('hinov_profiles', JSON.stringify(merged));
+        return merged;
       }
     } catch (e) {
       console.warn('Erreur initialisation profiles:', e);
@@ -92,19 +96,33 @@ export function ErpDataProvider({ children }) {
   });
 
   const [modules, setModules] = useState(() => {
-    if (localStorage.getItem('hinov_prod_admin_v2') !== 'true') {
-      return INITIAL_MODULES;
-    }
     const s = localStorage.getItem('hinov_modules');
     return s ? JSON.parse(s) : INITIAL_MODULES;
   });
 
   const [userModules, setUserModules] = useState(() => {
-    if (localStorage.getItem('hinov_prod_admin_v2') !== 'true') {
-      return INITIAL_USER_MODULES;
+    try {
+      const s = localStorage.getItem('hinov_user_modules');
+      if (s) {
+        const parsed = JSON.parse(s);
+        const map = new Map();
+        parsed.forEach((um) => {
+          if (um) map.set(`${um.user_id}_${um.module_id}`, um);
+        });
+        INITIAL_USER_MODULES.forEach((initUm) => {
+          const key = `${initUm.user_id}_${initUm.module_id}`;
+          if (!map.has(key)) {
+            map.set(key, initUm);
+          }
+        });
+        const merged = Array.from(map.values());
+        localStorage.setItem('hinov_user_modules', JSON.stringify(merged));
+        return merged;
+      }
+    } catch (e) {
+      console.warn('Erreur initialisation user_modules:', e);
     }
-    const s = localStorage.getItem('hinov_user_modules');
-    return s ? JSON.parse(s) : INITIAL_USER_MODULES;
+    return INITIAL_USER_MODULES;
   });
 
   const [articles, setArticles] = useState(() => {
@@ -209,9 +227,11 @@ export function ErpDataProvider({ children }) {
   // ==========================================
   const addProfile = (newUserData, enabledModuleCodes = []) => {
     const newUserId = `usr-${Date.now()}`;
+    const cleanEmail = (newUserData.email || '').trim().toLowerCase();
     const newProfile = {
       ...newUserData,
       id: newUserId,
+      email: cleanEmail,
       password: newUserData.password || 'Hinov@123',
       role: newUserData.role || 'USER',
       actif: newUserData.actif !== undefined ? newUserData.actif : true,
@@ -227,32 +247,67 @@ export function ErpDataProvider({ children }) {
       is_enabled: newUserData.role === 'ADMIN' ? true : enabledModuleCodes.includes(mod.code_module) || mod.code_module === 'CAISSE_DEPENSES'
     }));
 
-    setProfiles(prev => [newProfile, ...prev]);
-    setUserModules(prev => [...prev, ...newUserModulesLinks]);
+    setProfiles(prev => {
+      const updated = [newProfile, ...prev.filter(p => (p.email || '').toLowerCase() !== cleanEmail)];
+      localStorage.setItem('hinov_profiles', JSON.stringify(updated));
+      return updated;
+    });
+    setUserModules(prev => {
+      const updated = [...prev, ...newUserModulesLinks];
+      localStorage.setItem('hinov_user_modules', JSON.stringify(updated));
+      return updated;
+    });
+
+    // Synchronisation Supabase si connecté
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      supabase.from('profiles').upsert([newProfile]).catch(err => console.warn('Supabase sync profile:', err));
+    }
+
     return newProfile;
   };
 
   const updateProfile = (id, updates) => {
-    setProfiles(prev => prev.map(p => p.id === id ? { ...p, ...updates, updated_at: new Date().toISOString() } : p));
+    setProfiles(prev => {
+      const updated = prev.map(p => p.id === id ? { ...p, ...updates, updated_at: new Date().toISOString() } : p);
+      localStorage.setItem('hinov_profiles', JSON.stringify(updated));
+      return updated;
+    });
     if (currentUser?.id === id && updateCurrentUser) {
       updateCurrentUser(updates);
     }
   };
 
   const resetUserPassword = (id, newPassword) => {
-    setProfiles(prev => prev.map(p => p.id === id ? { ...p, password: newPassword, updated_at: new Date().toISOString() } : p));
+    setProfiles(prev => {
+      const updated = prev.map(p => p.id === id ? { ...p, password: newPassword, updated_at: new Date().toISOString() } : p);
+      localStorage.setItem('hinov_profiles', JSON.stringify(updated));
+      return updated;
+    });
     if (currentUser?.id === id && updateCurrentUser) {
       updateCurrentUser({ password: newPassword });
     }
   };
 
   const deleteProfile = (id) => {
-    setProfiles(prev => prev.filter(p => p.id !== id));
-    setUserModules(prev => prev.filter(um => um.user_id !== id));
+    setProfiles(prev => {
+      const updated = prev.filter(p => p.id !== id);
+      localStorage.setItem('hinov_profiles', JSON.stringify(updated));
+      return updated;
+    });
+    setUserModules(prev => {
+      const updated = prev.filter(um => um.user_id !== id);
+      localStorage.setItem('hinov_user_modules', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const toggleUserStatus = (id) => {
-    setProfiles(prev => prev.map(p => p.id === id ? { ...p, actif: !p.actif } : p));
+    setProfiles(prev => {
+      const updated = prev.map(p => p.id === id ? { ...p, actif: !p.actif } : p);
+      localStorage.setItem('hinov_profiles', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   // ==========================================
