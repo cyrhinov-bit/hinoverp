@@ -9,7 +9,11 @@ import {
   IconButton,
   Tooltip,
   Switch,
-  FormControlLabel
+  FormControlLabel,
+  Snackbar,
+  Alert,
+  Paper,
+  Divider
 } from '@mui/material';
 
 import {
@@ -44,6 +48,7 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 export default function UsersManager() {
   const { currentUser, isAdmin } = useAuth();
@@ -65,12 +70,20 @@ export default function UsersManager() {
   const [permissionsModalUser, setPermissionsModalUser] = useState(null);
   const [deleteConfirmUser, setDeleteConfirmUser] = useState(null);
   const [passwordModalUser, setPasswordModalUser] = useState(null);
+  const [createdSuccessUser, setCreatedSuccessUser] = useState(null);
+
+  // Form validation & error feedback
+  const [formError, setFormError] = useState('');
+
+  // Toast notification feedback
+  const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
 
   // Password reset state
   const [newPasswordInput, setNewPasswordInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showFormPassword, setShowFormPassword] = useState(false);
   const [copiedNotification, setCopiedNotification] = useState(false);
+  const [copiedSuccessCredentials, setCopiedSuccessCredentials] = useState(false);
 
   // Formulaire Nouvel Utilisateur / Édition
   const [formData, setFormData] = useState({
@@ -104,6 +117,7 @@ export default function UsersManager() {
 
   const handleOpenCreate = () => {
     setEditingUser(null);
+    setFormError('');
     setFormData({
       nom: '',
       poste: '',
@@ -120,6 +134,7 @@ export default function UsersManager() {
 
   const handleOpenEdit = (user) => {
     setEditingUser(user);
+    setFormError('');
     // Trouver les modules activés de cet utilisateur
     const enabled = modules
       .filter((m) => {
@@ -152,6 +167,11 @@ export default function UsersManager() {
   const handleSavePasswordReset = () => {
     if (passwordModalUser && newPasswordInput.trim()) {
       resetUserPassword(passwordModalUser.id, newPasswordInput.trim());
+      setToast({
+        open: true,
+        message: `Mot de passe réinitialisé avec succès pour ${passwordModalUser.nom}.`,
+        severity: 'success'
+      });
       setPasswordModalUser(null);
       setNewPasswordInput('');
     }
@@ -165,6 +185,15 @@ export default function UsersManager() {
     }
   };
 
+  const handleCopyCredentials = (user) => {
+    if (!user) return;
+    const pwd = user.plainPassword || user.password || 'Non renseigné';
+    const text = `🏢 HINOV ERP - Accès Utilisateur\n------------------------------------\n👤 Nom : ${user.nom}\n📧 Identifiant (Email) : ${user.email}\n🔑 Mot de passe : ${pwd}\n🌐 Lien d'accès : ${window.location.origin}`;
+    navigator.clipboard.writeText(text);
+    setCopiedSuccessCredentials(true);
+    setTimeout(() => setCopiedSuccessCredentials(false), 3000);
+  };
+
   const handleModuleCheckboxToggle = (moduleCode) => {
     setFormData((prev) => {
       const exists = prev.enabledModules.includes(moduleCode);
@@ -176,15 +205,31 @@ export default function UsersManager() {
   };
 
   const handleSaveUser = (e) => {
-    e.preventDefault();
-    if (!formData.nom || !formData.email) return;
+    if (e && e.preventDefault) e.preventDefault();
+    setFormError('');
+
+    const cleanNom = (formData.nom || '').trim();
+    const cleanEmail = (formData.email || '').trim().toLowerCase();
+
+    if (!cleanNom) {
+      setFormError('Le nom et prénom(s) sont obligatoires.');
+      return;
+    }
+    if (!cleanEmail) {
+      setFormError("L'adresse email est obligatoire.");
+      return;
+    }
+    if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      setFormError('Veuillez saisir une adresse email valide (ex: contact@hinovgroup.com).');
+      return;
+    }
 
     if (editingUser) {
       const updateData = {
-        nom: formData.nom,
-        poste: formData.poste,
-        email: formData.email,
-        telephone: formData.telephone,
+        nom: cleanNom,
+        poste: formData.poste?.trim() || '',
+        email: cleanEmail,
+        telephone: formData.telephone?.trim() || '',
         role: formData.role,
         actif: formData.actif
       };
@@ -197,27 +242,50 @@ export default function UsersManager() {
         const isEnabled = formData.role === 'ADMIN' || formData.enabledModules.includes(m.code_module) || m.code_module === 'CAISSE_DEPENSES';
         toggleUserModule(editingUser.id, m.id, isEnabled);
       });
+      setToast({
+        open: true,
+        message: `Compte utilisateur ${cleanNom} mis à jour avec succès.`,
+        severity: 'success'
+      });
+      setCreateModalOpen(false);
     } else {
-      addProfile(
+      const userPassword = formData.password?.trim() || generateRandomPassword();
+      const newCreatedUser = addProfile(
         {
-          nom: formData.nom,
-          poste: formData.poste,
-          email: formData.email,
-          telephone: formData.telephone,
-          password: formData.password || generateRandomPassword(),
+          nom: cleanNom,
+          poste: formData.poste?.trim() || '',
+          email: cleanEmail,
+          telephone: formData.telephone?.trim() || '',
+          password: userPassword,
           role: formData.role,
           actif: formData.actif
         },
         formData.enabledModules
       );
-    }
 
-    setCreateModalOpen(false);
+      setCreateModalOpen(false);
+      // Ouvrir immédiatement la boîte modale de confirmation avec les identifiants
+      setCreatedSuccessUser({
+        ...newCreatedUser,
+        plainPassword: userPassword
+      });
+      setToast({
+        open: true,
+        message: `Compte utilisateur créé avec succès pour ${cleanNom} !`,
+        severity: 'success'
+      });
+    }
   };
 
   const handleConfirmDelete = () => {
     if (deleteConfirmUser) {
+      const nom = deleteConfirmUser.nom;
       deleteProfile(deleteConfirmUser.id);
+      setToast({
+        open: true,
+        message: `Utilisateur ${nom} supprimé.`,
+        severity: 'info'
+      });
       setDeleteConfirmUser(null);
     }
   };
@@ -513,13 +581,21 @@ export default function UsersManager() {
       >
         <form onSubmit={handleSaveUser}>
           <Stack spacing={2} sx={{ pt: 1 }}>
+            {formError && (
+              <Alert severity="error" sx={{ borderRadius: '2px', py: 0.5 }}>
+                {formError}
+              </Alert>
+            )}
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <BsbTextField
                   label="Nom & Prénom(s)"
                   required
                   value={formData.nom}
-                  onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, nom: e.target.value });
+                    if (formError) setFormError('');
+                  }}
                   placeholder="Ex: Eric Kouassi"
                 />
               </Grid>
@@ -885,6 +961,158 @@ export default function UsersManager() {
           </Box>
         )}
       </BsbModal>
+
+      {/* Modal Succès Création d'Utilisateur avec Identifiants Copiables */}
+      <BsbModal
+        open={Boolean(createdSuccessUser)}
+        onClose={() => setCreatedSuccessUser(null)}
+        title="UTILISATEUR CRÉÉ AVEC SUCCÈS"
+        subtitle="Le profil est enregistré et actif. Transmettez ces identifiants au collaborateur."
+        headerColor="light-green"
+        maxWidth="sm"
+        actions={
+          <BsbButton
+            color="primary"
+            onClick={() => setCreatedSuccessUser(null)}
+          >
+            Fermer & Terminer
+          </BsbButton>
+        }
+      >
+        {createdSuccessUser && (
+          <Box sx={{ py: 1 }}>
+            <Paper
+              elevation={0}
+              sx={{
+                p: 2,
+                mb: 2.5,
+                bgcolor: '#E8F5E9',
+                border: '1px solid #A5D6A7',
+                borderRadius: '2px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5
+              }}
+            >
+              <CheckCircleIcon sx={{ fontSize: 32, color: '#2E7D32' }} />
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#1B5E20' }}>
+                  Compte opérationnel & Enregistré !
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#2E7D32', display: 'block' }}>
+                  Le compte peut désormais se connecter sur tous les terminaux autorisés.
+                </Typography>
+              </Box>
+            </Paper>
+
+            <Box
+              sx={{
+                p: 2.5,
+                bgcolor: '#FAFAFA',
+                border: '1px solid #E0E0E0',
+                borderRadius: '2px',
+                mb: 2.5
+              }}
+            >
+              <Typography variant="caption" sx={{ fontWeight: 800, color: '#555', letterSpacing: 0.5, display: 'block', mb: 1.5 }}>
+                FICHE D'IDENTIFIANTS D'ACCÈS
+              </Typography>
+
+              <Stack spacing={1.5}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="caption" sx={{ color: '#777', fontWeight: 600 }}>
+                    Nom & Prénom(s) :
+                  </Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#222' }}>
+                    {createdSuccessUser.nom}
+                  </Typography>
+                </Box>
+
+                <Divider />
+
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="caption" sx={{ color: '#777', fontWeight: 600 }}>
+                    Identifiant / Email :
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#0288D1' }}>
+                    {createdSuccessUser.email}
+                  </Typography>
+                </Box>
+
+                <Divider />
+
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="caption" sx={{ color: '#777', fontWeight: 600 }}>
+                    Mot de passe initial :
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 800,
+                        color: '#D84315',
+                        bgcolor: '#FBE9E7',
+                        px: 1.2,
+                        py: 0.4,
+                        borderRadius: '2px',
+                        letterSpacing: 1
+                      }}
+                    >
+                      {createdSuccessUser.plainPassword || createdSuccessUser.password}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Divider />
+
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="caption" sx={{ color: '#777', fontWeight: 600 }}>
+                    Rôle Système :
+                  </Typography>
+                  <Chip
+                    size="small"
+                    label={createdSuccessUser.role === 'ADMIN' ? 'ADMINISTRATEUR GÉNÉRAL' : 'COLLABORATEUR'}
+                    sx={{
+                      bgcolor: createdSuccessUser.role === 'ADMIN' ? '#EDE7F6' : '#E3F2FD',
+                      color: createdSuccessUser.role === 'ADMIN' ? '#512DA8' : '#1565C0',
+                      fontWeight: 800,
+                      fontSize: '0.68rem',
+                      borderRadius: '2px'
+                    }}
+                  />
+                </Box>
+              </Stack>
+            </Box>
+
+            <BsbButton
+              fullWidth
+              color={copiedSuccessCredentials ? 'teal' : 'primary'}
+              startIcon={<ContentCopyIcon />}
+              onClick={() => handleCopyCredentials(createdSuccessUser)}
+              sx={{ py: 1.2, fontWeight: 700 }}
+            >
+              {copiedSuccessCredentials ? '✓ Identifiants copiés dans le presse-papier !' : 'Copier les identifiants pour le collaborateur'}
+            </BsbButton>
+          </Box>
+        )}
+      </BsbModal>
+
+      {/* Snackbar Global pour les notifications */}
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={4000}
+        onClose={() => setToast({ ...toast, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setToast({ ...toast, open: false })}
+          severity={toast.severity}
+          variant="filled"
+          sx={{ width: '100%', borderRadius: '2px', fontWeight: 600 }}
+        >
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
