@@ -81,8 +81,9 @@ export function ErpDataProvider({ children }) {
           const key = initP.email.trim().toLowerCase();
           if (!map.has(key)) {
             map.set(key, initP);
-          } else if (initP.role === 'ADMIN') {
-            map.set(key, { ...map.get(key), ...initP });
+          } else {
+            const existing = map.get(key);
+            map.set(key, { ...initP, ...existing, actif: existing.actif !== false });
           }
         });
         const merged = Array.from(map.values());

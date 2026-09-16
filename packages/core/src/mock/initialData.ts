@@ -89,7 +89,7 @@ export const INITIAL_PROFILES: Profile[] = [
     nom: 'A. Bosso',
     poste: 'Collaborateur & Gestionnaire Opérationnel',
     email: 'a.bosso@hinovgroup.com',
-    password: '123456',
+    password: '123654',
     telephone: '+225 05 00 00 00 00',
     role: 'USER',
     actif: true,
