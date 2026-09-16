@@ -18,16 +18,30 @@ import CheckCircleTwoToneIcon from '@mui/icons-material/CheckCircleTwoTone';
 import CodeIcon from '@mui/icons-material/Code';
 
 export default function SupabaseStatus() {
-  const { profiles, modules, userModules, interventions, articles, mouvements, prestations } = useErpData();
+  const { 
+    profiles, 
+    modules, 
+    userModules, 
+    interventions, 
+    articles, 
+    mouvements, 
+    prestations,
+    clientsFournisseurs,
+    agentsCommerciaux,
+    commissions
+  } = useErpData();
 
   const tables = [
     { name: 'profiles', count: profiles.length, desc: 'Utilisateurs et rôles (ADMIN/USER)' },
     { name: 'modules', count: modules.length, desc: 'Modules fonctionnels enregistrés' },
     { name: 'user_modules', count: userModules.length, desc: 'Permissions dynamiques par toggle' },
-    { name: 'interventions_maintenance', count: interventions.length, desc: 'Tickets et pannes de maintenance' },
+    { name: 'clients_fournisseurs', count: clientsFournisseurs.length, desc: 'Annuaire croisé Clients, Fournisseurs et Partenaires' },
+    { name: 'agents_commerciaux', count: agentsCommerciaux.length, desc: 'Équipe commerciale et taux de commission' },
+    { name: 'prestations_commandes', count: prestations.length, desc: 'Commandes, prestations et calculs financiers 11 colonnes' },
+    { name: 'commissions_apporteurs', count: commissions.length, desc: 'Commissions apporteurs (10%), agents et responsables' },
+    { name: 'mouvements_caisse', count: mouvements.length, desc: 'Journal de trésorerie (entrées/sorties réelles)' },
     { name: 'catalogue_articles', count: articles.length, desc: 'Stock et consommables' },
-    { name: 'mouvements_caisse', count: mouvements.length, desc: 'Journal de trésorerie (entrées/sorties)' },
-    { name: 'prestations_commandes', count: prestations.length, desc: 'Devis, commandes et marges' }
+    { name: 'interventions_maintenance', count: interventions.length, desc: 'Tickets et pannes de maintenance' }
   ];
 
   return (

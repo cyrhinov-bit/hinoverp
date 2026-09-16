@@ -107,7 +107,7 @@ export default function Profile() {
                   />
                 </Box>
 
-                {profiles.length > 1 && (
+                {isAdmin && profiles.length > 1 && (
                   <Box sx={{ p: 1.5 }}>
                     <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 700, textTransform: 'uppercase', px: 1 }}>
                       Changer d'utilisateur

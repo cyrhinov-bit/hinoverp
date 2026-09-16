@@ -164,7 +164,7 @@ export default function UserInfo() {
 
         <Divider sx={{ my: 0.5 }} />
 
-        {profiles?.length > 1 && (
+        {isAdmin && profiles?.length > 1 && (
           <>
             <Box sx={{ px: 2, py: 1, bgcolor: '#f9fafb' }}>
               <Typography variant="caption" sx={{ fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>
