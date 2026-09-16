@@ -2,36 +2,37 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { INITIAL_PROFILES } from '@hinov/core';
 
 const defaultAuthValue = {
-  currentUser: INITIAL_PROFILES[0],
+  currentUser: null,
+  isAuthenticated: false,
   switchUser: () => {},
   logout: () => {},
   loginAs: () => {},
-  isAdmin: true
+  isAdmin: false
 };
 
 const AuthContext = createContext(defaultAuthValue);
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(() => {
-    if (localStorage.getItem('hinov_prod_admin_v2') !== 'true') {
-      localStorage.removeItem('hinov_current_user');
-      localStorage.setItem('hinov_prod_admin_v2', 'true');
-      return INITIAL_PROFILES[0];
-    }
-    const saved = localStorage.getItem('hinov_current_user');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error('Erreur parsing user', e);
+    try {
+      const saved = localStorage.getItem('hinov_current_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.email) {
+          return parsed;
+        }
       }
+    } catch (e) {
+      console.error('Erreur parsing user', e);
     }
-    return INITIAL_PROFILES[0]; // Admin par défaut
+    return null; // Déconnecté par défaut si aucun compte enregistré en session
   });
 
   useEffect(() => {
     if (currentUser) {
       localStorage.setItem('hinov_current_user', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('hinov_current_user');
     }
   }, [currentUser]);
 
