@@ -2,13 +2,11 @@ services:
   - type: web
     name: hinov-erp
     runtime: static
-    buildCommand: pnpm install --no-frozen-lockfile && pnpm run build:web
-    staticPublishPath: ./apps/web/dist
+    buildCommand: npm install -g pnpm && pnpm install --no-frozen-lockfile && pnpm run build:web
+    staticPublishPath: apps/web/dist
     envVars:
       - key: NODE_VERSION
         value: 20.18.0
-      - key: PNPM_VERSION
-        value: 10.5.2
     routes:
       - type: rewrite
         source: /*
