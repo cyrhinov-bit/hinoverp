@@ -71,9 +71,8 @@ export function AuthProvider({ children }) {
     }
 
     const userPwd = (user.password || '').trim();
-    const isPasswordValid = userPwd === cleanPassword || (cleanEmail === 'a.bosso@hinovgroup.com' && (cleanPassword === '123654' || cleanPassword === '123456'));
 
-    if (!isPasswordValid) {
+    if (userPwd !== cleanPassword) {
       return { success: false, error: 'Mot de passe incorrect.' };
     }
 
