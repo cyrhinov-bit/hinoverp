@@ -115,6 +115,8 @@ export default function UsersManager() {
     return { total, admins, actifs, inactifs };
   }, [profiles]);
 
+  const allModuleCodes = useMemo(() => modules.map((m) => m.code_module), [modules]);
+
   const handleOpenCreate = () => {
     setEditingUser(null);
     setFormError('');
@@ -126,7 +128,7 @@ export default function UsersManager() {
       password: generateRandomPassword(),
       role: 'USER',
       actif: true,
-      enabledModules: ['CAISSE_DEPENSES', 'PRESTATIONS']
+      enabledModules: allModuleCodes.length > 0 ? allModuleCodes : ['MAINTENANCE', 'STOCKS', 'CAISSE_DEPENSES', 'PRESTATIONS', 'CLIENTS_FOURNISSEURS', 'COMMERCIAUX', 'COMMISSIONS']
     });
     setShowFormPassword(true);
     setCreateModalOpen(true);
@@ -708,9 +710,27 @@ export default function UsersManager() {
             {/* Affectation des modules si rôle USER */}
             {formData.role !== 'ADMIN' && (
               <Box sx={{ mt: 2, p: 2, bgcolor: '#f8f9fa', border: '1px solid #e9ecef', borderRadius: '2px' }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#333', mb: 1 }}>
-                  MODULES HABILITÉS POUR CET UTILISATEUR :
-                </Typography>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#333' }}>
+                    MODULES HABILITÉS POUR CET UTILISATEUR :
+                  </Typography>
+                  <Stack direction="row" spacing={1}>
+                    <BsbButton
+                      size="xs"
+                      color="teal"
+                      onClick={() => setFormData((prev) => ({ ...prev, enabledModules: allModuleCodes }))}
+                    >
+                      Tout activer
+                    </BsbButton>
+                    <BsbButton
+                      size="xs"
+                      color="secondary"
+                      onClick={() => setFormData((prev) => ({ ...prev, enabledModules: ['CAISSE_DEPENSES'] }))}
+                    >
+                      Désactiver
+                    </BsbButton>
+                  </Stack>
+                </Stack>
                 <Grid container spacing={1}>
                   {modules.map((m) => {
                     const isChecked = formData.enabledModules.includes(m.code_module) || m.code_module === 'CAISSE_DEPENSES';

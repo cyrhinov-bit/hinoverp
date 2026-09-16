@@ -29,7 +29,11 @@ export function canAccessModule(
 
   // 4. Vérifier dans la table de liaison user_modules
   const userModuleLink = userModules.find(
-    um => um.user_id === user.id && (um.module_id === moduleId || um.module_id === targetModule?.id)
+    um => um.user_id === user.id && (
+      um.module_id === moduleId || 
+      (targetModule && um.module_id === targetModule.id) ||
+      um.module_id === moduleCode
+    )
   );
 
   return !!userModuleLink?.is_enabled;
@@ -49,7 +53,7 @@ export function getAuthorizedModules(
   return allModules.filter(module => {
     if (module.code_module === 'CAISSE_DEPENSES') return true;
     const link = userModules.find(
-      um => um.user_id === user.id && um.module_id === module.id
+      um => um.user_id === user.id && (um.module_id === module.id || um.module_id === module.code_module)
     );
     return !!link?.is_enabled;
   });

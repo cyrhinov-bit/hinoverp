@@ -3,6 +3,7 @@ import { lazy } from 'react';
 // project imports
 import Loadable from 'components/Loadable';
 import MainLayout from 'layouts/MainLayout';
+import ModuleGuard from 'components/guards/ModuleGuard';
 
 // ERP Pages
 const DashboardDefault = Loadable(lazy(() => import('views/dashboard/default')));
@@ -38,43 +39,83 @@ const MainRoutes = {
     },
     {
       path: '/admin/users',
-      element: <UsersManager />
+      element: (
+        <ModuleGuard adminOnly>
+          <UsersManager />
+        </ModuleGuard>
+      )
     },
     {
       path: '/admin/permissions',
-      element: <PermissionsManager />
+      element: (
+        <ModuleGuard adminOnly>
+          <PermissionsManager />
+        </ModuleGuard>
+      )
     },
     {
       path: '/admin/supabase',
-      element: <SupabaseStatus />
+      element: (
+        <ModuleGuard adminOnly>
+          <SupabaseStatus />
+        </ModuleGuard>
+      )
     },
     {
       path: '/tiers',
-      element: <TiersModule />
+      element: (
+        <ModuleGuard moduleCode="CLIENTS_FOURNISSEURS">
+          <TiersModule />
+        </ModuleGuard>
+      )
     },
     {
       path: '/commerciaux',
-      element: <CommerciauxModule />
+      element: (
+        <ModuleGuard moduleCode="COMMERCIAUX">
+          <CommerciauxModule />
+        </ModuleGuard>
+      )
     },
     {
       path: '/commissions',
-      element: <CommissionsModule />
+      element: (
+        <ModuleGuard moduleCode="COMMISSIONS">
+          <CommissionsModule />
+        </ModuleGuard>
+      )
     },
     {
       path: '/prestations',
-      element: <PrestationsModule />
+      element: (
+        <ModuleGuard moduleCode="PRESTATIONS">
+          <PrestationsModule />
+        </ModuleGuard>
+      )
     },
     {
       path: '/caisse',
-      element: <CaisseModule />
+      element: (
+        <ModuleGuard moduleCode="CAISSE_DEPENSES">
+          <CaisseModule />
+        </ModuleGuard>
+      )
     },
     {
       path: '/stocks',
-      element: <StocksModule />
+      element: (
+        <ModuleGuard moduleCode="STOCKS">
+          <StocksModule />
+        </ModuleGuard>
+      )
     },
     {
       path: '/maintenance',
-      element: <MaintenanceModule />
+      element: (
+        <ModuleGuard moduleCode="MAINTENANCE">
+          <MaintenanceModule />
+        </ModuleGuard>
+      )
     }
   ]
 };
