@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Box, Card, CardContent, Typography, Stack, Container } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import PwaInstallButton from 'components/pwa/PwaInstallButton';
 
 export default function CommonAuthLayout({ title, subHeading, children }) {
   return (
@@ -83,8 +84,13 @@ export default function CommonAuthLayout({ title, subHeading, children }) {
           </CardContent>
         </Card>
 
+        {/* PWA Install Button on Login Screen */}
+        <Box sx={{ textAlign: 'center', mt: 2.5 }}>
+          <PwaInstallButton variant="button" />
+        </Box>
+
         {/* Footer */}
-        <Box sx={{ textAlign: 'center', mt: 3 }}>
+        <Box sx={{ textAlign: 'center', mt: 2 }}>
           <Typography variant="caption" sx={{ color: '#546e7a', fontWeight: 600 }}>
             © {new Date().getFullYear()} HINOV GROUP • Tous droits réservés
           </Typography>

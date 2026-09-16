@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 
 import SkinSwitcher from './SkinSwitcher';
 import Profile from './Profile';
+import PwaInstallButton from 'components/pwa/PwaInstallButton';
 import { handlerDrawerOpen, useGetMenuMaster } from 'states/menu';
 import { useAdminTheme } from 'context/ThemeCustomizationContext';
 import { useAuth } from 'context/AuthContext';
@@ -115,6 +116,7 @@ export default function Header() {
             }}
           />
 
+          <PwaInstallButton variant="header" />
           <SkinSwitcher />
           <Profile />
 
