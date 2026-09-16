@@ -6,7 +6,7 @@ services:
     staticPublishPath: apps/web/dist
     envVars:
       - key: NODE_VERSION
-        value: 20.18.0
+        value: 22.14.0
     routes:
       - type: rewrite
         source: /*
