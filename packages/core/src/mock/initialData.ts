@@ -107,13 +107,13 @@ export const INITIAL_USER_MODULES: UserModule[] = [
   { id: 'um-5', user_id: 'usr-admin-1', module_id: 'mod-5', is_enabled: true },
   { id: 'um-6', user_id: 'usr-admin-1', module_id: 'mod-6', is_enabled: true },
   { id: 'um-7', user_id: 'usr-admin-1', module_id: 'mod-7', is_enabled: true },
-  { id: 'um-8', user_id: 'usr-staff-2', module_id: 'mod-1', is_enabled: true },
-  { id: 'um-9', user_id: 'usr-staff-2', module_id: 'mod-2', is_enabled: true },
-  { id: 'um-10', user_id: 'usr-staff-2', module_id: 'mod-3', is_enabled: true },
-  { id: 'um-11', user_id: 'usr-staff-2', module_id: 'mod-4', is_enabled: true },
-  { id: 'um-12', user_id: 'usr-staff-2', module_id: 'mod-5', is_enabled: true },
-  { id: 'um-13', user_id: 'usr-staff-2', module_id: 'mod-6', is_enabled: true },
-  { id: 'um-14', user_id: 'usr-staff-2', module_id: 'mod-7', is_enabled: true }
+  { id: 'um-8', user_id: 'usr-staff-2', module_id: 'mod-1', is_enabled: true }, // Maintenance
+  { id: 'um-9', user_id: 'usr-staff-2', module_id: 'mod-2', is_enabled: true }, // Stocks
+  { id: 'um-10', user_id: 'usr-staff-2', module_id: 'mod-3', is_enabled: true }, // Dépenses & Caisse
+  { id: 'um-11', user_id: 'usr-staff-2', module_id: 'mod-4', is_enabled: false }, // Prestations & Commandes (DÉSACTIVÉ)
+  { id: 'um-12', user_id: 'usr-staff-2', module_id: 'mod-5', is_enabled: true }, // Clients & Fournisseurs
+  { id: 'um-13', user_id: 'usr-staff-2', module_id: 'mod-6', is_enabled: false }, // Agents Commerciaux (DÉSACTIVÉ)
+  { id: 'um-14', user_id: 'usr-staff-2', module_id: 'mod-7', is_enabled: false }  // Gestion des Commissions (DÉSACTIVÉ)
 ];
 
 // Données Métier de Production : Vides pour saisie des données réelles

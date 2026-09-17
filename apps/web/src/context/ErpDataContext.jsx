@@ -103,6 +103,12 @@ export function ErpDataProvider({ children }) {
 
   const [userModules, setUserModules] = useState(() => {
     try {
+      const v = localStorage.getItem('hinov_permissions_v3');
+      if (v !== 'true') {
+        localStorage.setItem('hinov_permissions_v3', 'true');
+        localStorage.setItem('hinov_user_modules', JSON.stringify(INITIAL_USER_MODULES));
+        return INITIAL_USER_MODULES;
+      }
       const s = localStorage.getItem('hinov_user_modules');
       if (s) {
         const parsed = JSON.parse(s);
