@@ -116,17 +116,126 @@ export const INITIAL_USER_MODULES: UserModule[] = [
   { id: 'um-14', user_id: 'usr-staff-2', module_id: 'mod-7', is_enabled: false }  // Gestion des Commissions (DÉSACTIVÉ)
 ];
 
-// Données Métier de Production : Vides pour saisie des données réelles
+// Données Métier de Démonstration & Initialisation
+export const INITIAL_CLIENTS_FOURNISSEURS: ClientFournisseur[] = [
+  {
+    id: 'a1111111-0000-0000-0000-000000000001',
+    type: 'CLIENT',
+    nom: 'Société Générale de Banque',
+    telephone: '+225 07 01 02 03 04',
+    email: 'contact@sgb-ci.com',
+    adresse: 'Plateau Avenue Chardy',
+    ville: 'Abidjan'
+  },
+  {
+    id: 'a1111111-0000-0000-0000-000000000002',
+    type: 'CLIENT',
+    nom: 'Hôtel Ivoire Palace',
+    telephone: '+225 05 55 44 33 22',
+    email: 'logistique@ivoirepalace.com',
+    adresse: 'Cocody Boulevard Hassan II',
+    ville: 'Abidjan'
+  },
+  {
+    id: 'a1111111-0000-0000-0000-000000000003',
+    type: 'FOURNISSEUR',
+    nom: 'Afric Distribution Matériel',
+    telephone: '+225 01 02 03 04 05',
+    email: 'commandes@africdistrib.ci',
+    adresse: 'Zone Industrielle Yopougon',
+    ville: 'Abidjan'
+  },
+  {
+    id: 'a1111111-0000-0000-0000-000000000004',
+    type: 'FOURNISSEUR',
+    nom: 'Tech & Energy Solutions',
+    telephone: '+225 07 77 88 99 00',
+    email: 'support@techenergy.ci',
+    adresse: 'Treichville Rue 12',
+    ville: 'Abidjan'
+  },
+  {
+    id: 'a1111111-0000-0000-0000-000000000005',
+    type: 'PARTENAIRE',
+    nom: 'InovTech Télécoms SA',
+    telephone: '+225 27 20 21 22 23',
+    email: 'direction@inovtech-ci.com',
+    adresse: 'Deux Plateaux Vallon',
+    ville: 'Abidjan'
+  }
+];
+
+export const INITIAL_ARTICLES: CatalogueArticle[] = [
+  {
+    id: 'b1111111-0000-0000-0000-000000000001',
+    code_article: 'ART-001',
+    designation: 'Câble Réseau RJ45 Cat6 (Bobine 100m)',
+    type_article: 'CONSOMMABLE',
+    quantite_stock: 18,
+    cout_unitaire_achat: 25000,
+    prix_unitaire_vente: 45000,
+    seuil_alerte: 5,
+    unite: 'Bobine',
+    fournisseur_id: 'a1111111-0000-0000-0000-000000000003',
+    fournisseur_nom: 'Afric Distribution Matériel'
+  },
+  {
+    id: 'b1111111-0000-0000-0000-000000000002',
+    code_article: 'ART-002',
+    designation: 'Switch 24 Ports Gigabit PoE+',
+    type_article: 'EQUIPEMENT',
+    quantite_stock: 4,
+    cout_unitaire_achat: 120000,
+    prix_unitaire_vente: 185000,
+    seuil_alerte: 3,
+    unite: 'Pièce',
+    fournisseur_id: 'a1111111-0000-0000-0000-000000000004',
+    fournisseur_nom: 'Tech & Energy Solutions'
+  },
+  {
+    id: 'b1111111-0000-0000-0000-000000000003',
+    code_article: 'ART-003',
+    designation: 'Onduleur 1500VA APC Smart-UPS',
+    type_article: 'EQUIPEMENT',
+    quantite_stock: 2,
+    cout_unitaire_achat: 160000,
+    prix_unitaire_vente: 240000,
+    seuil_alerte: 3,
+    unite: 'Pièce',
+    fournisseur_id: 'a1111111-0000-0000-0000-000000000004',
+    fournisseur_nom: 'Tech & Energy Solutions'
+  },
+  {
+    id: 'b1111111-0000-0000-0000-000000000004',
+    code_article: 'ART-004',
+    designation: 'Disjoncteur Différentiel 32A Schneider',
+    type_article: 'PIECE_DETACHEE',
+    quantite_stock: 15,
+    cout_unitaire_achat: 14000,
+    prix_unitaire_vente: 22000,
+    seuil_alerte: 6,
+    unite: 'Pièce',
+    fournisseur_id: 'a1111111-0000-0000-0000-000000000004',
+    fournisseur_nom: 'Tech & Energy Solutions'
+  },
+  {
+    id: 'b1111111-0000-0000-0000-000000000005',
+    code_article: 'ART-005',
+    designation: 'Ampoule LED Industrielle 50W',
+    type_article: 'CONSOMMABLE',
+    quantite_stock: 3,
+    cout_unitaire_achat: 4500,
+    prix_unitaire_vente: 8000,
+    seuil_alerte: 10,
+    unite: 'Pièce',
+    fournisseur_id: 'a1111111-0000-0000-0000-000000000003',
+    fournisseur_nom: 'Afric Distribution Matériel'
+  }
+];
+
 export const INITIAL_AGENTS_COMMERCIAUX: AgentCommercial[] = [];
-
-export const INITIAL_CLIENTS_FOURNISSEURS: ClientFournisseur[] = [];
-
 export const INITIAL_PRESTATIONS: PrestationCommande[] = [];
-
 export const INITIAL_COMMISSIONS: CommissionItem[] = [];
-
-export const INITIAL_ARTICLES: CatalogueArticle[] = [];
-
 export const INITIAL_INTERVENTIONS: InterventionMaintenance[] = [];
-
 export const INITIAL_MOUVEMENTS: MouvementCaisse[] = [];
+

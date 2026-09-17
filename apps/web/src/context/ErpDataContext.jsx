@@ -133,43 +133,44 @@ export function ErpDataProvider({ children }) {
   });
 
   const [articles, setArticles] = useState(() => {
-    if (localStorage.getItem('hinov_prod_admin_v2') !== 'true') {
-      return INITIAL_ARTICLES;
+    try {
+      const s = localStorage.getItem('hinov_articles');
+      if (s) {
+        const parsed = JSON.parse(s);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Erreur lecture articles localStorage:', e);
     }
-    const s = localStorage.getItem('hinov_articles');
-    return s ? JSON.parse(s) : INITIAL_ARTICLES;
+    return INITIAL_ARTICLES;
   });
 
   const [interventions, setInterventions] = useState(() => {
-    if (localStorage.getItem('hinov_prod_admin_v2') !== 'true') {
-      return INITIAL_INTERVENTIONS;
-    }
     const s = localStorage.getItem('hinov_interventions');
     return s ? JSON.parse(s) : INITIAL_INTERVENTIONS;
   });
 
   const [mouvements, setMouvements] = useState(() => {
-    if (localStorage.getItem('hinov_prod_admin_v2') !== 'true') {
-      return INITIAL_MOUVEMENTS;
-    }
     const s = localStorage.getItem('hinov_mouvements');
     return s ? JSON.parse(s) : INITIAL_MOUVEMENTS;
   });
 
   const [prestations, setPrestations] = useState(() => {
-    if (localStorage.getItem('hinov_prod_admin_v2') !== 'true') {
-      return INITIAL_PRESTATIONS;
-    }
     const s = localStorage.getItem('hinov_prestations');
     return s ? JSON.parse(s) : INITIAL_PRESTATIONS;
   });
 
   const [clientsFournisseurs, setClientsFournisseurs] = useState(() => {
-    if (localStorage.getItem('hinov_prod_admin_v2') !== 'true') {
-      return INITIAL_CLIENTS_FOURNISSEURS;
+    try {
+      const s = localStorage.getItem('hinov_clients');
+      if (s) {
+        const parsed = JSON.parse(s);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Erreur lecture clients localStorage:', e);
     }
-    const s = localStorage.getItem('hinov_clients');
-    return s ? JSON.parse(s) : INITIAL_CLIENTS_FOURNISSEURS;
+    return INITIAL_CLIENTS_FOURNISSEURS;
   });
 
   const [agentsCommerciaux, setAgentsCommerciaux] = useState(() => {
