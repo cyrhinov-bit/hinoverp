@@ -58,16 +58,19 @@ export default defineConfig(({ mode }) => {
           ]
         },
         workbox: {
+          cleanupOutdatedCaches: true,
+          clientsClaim: true,
+          skipWaiting: true,
           globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
           runtimeCaching: [
             {
               urlPattern: ({ request }) => request.destination === 'image',
-              handler: 'CacheFirst',
+              handler: 'StaleWhileRevalidate',
               options: {
                 cacheName: 'hinov-images-cache',
                 expiration: {
                   maxEntries: 100,
-                  maxAgeSeconds: 30 * 24 * 60 * 60
+                  maxAgeSeconds: 7 * 24 * 60 * 60
                 }
               }
             }
