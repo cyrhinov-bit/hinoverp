@@ -78,7 +78,7 @@ export default function StocksModule() {
     );
   }
 
-  const stockValuation = calculateStockValuation(articles);
+  const stockValuation = useMemo(() => calculateStockValuation(articles), [articles]);
 
   const handleSupplierSelect = (fournisseurId) => {
     if (!fournisseurId) {

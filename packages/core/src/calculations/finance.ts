@@ -157,17 +157,20 @@ export function calculateProfitMargin(
 /**
  * Calcul de la valorisation du stock et détection des alertes de rupture
  */
-export function calculateStockValuation(articles: CatalogueArticle[]) {
+export function calculateStockValuation(articles: CatalogueArticle[] = []) {
   let valeurAchatTotale = 0;
   let valeurVenteTotale = 0;
   let articlesEnAlerte: CatalogueArticle[] = [];
   let totalArticlesEnStock = 0;
 
-  for (const art of articles) {
-    const qte = Number(art.quantite_stock) || 0;
-    const coutAchat = Number(art.cout_unitaire_achat) || 0;
-    const prixVente = Number(art.prix_unitaire_vente) || 0;
-    const seuil = Number(art.seuil_alerte) || 5;
+  const list = Array.isArray(articles) ? articles : [];
+
+  for (const art of list) {
+    if (!art) continue;
+    const qte = Number(art.quantite_stock !== undefined ? art.quantite_stock : (art as any).quantite) || 0;
+    const coutAchat = Number(art.cout_unitaire_achat !== undefined ? art.cout_unitaire_achat : ((art as any).coutAchat || (art as any).cout_achat)) || 0;
+    const prixVente = Number(art.prix_unitaire_vente !== undefined ? art.prix_unitaire_vente : ((art as any).prixVente || (art as any).prix_vente || (art as any).prix)) || 0;
+    const seuil = Number(art.seuil_alerte !== undefined ? art.seuil_alerte : ((art as any).seuilAlerte || (art as any).seuil)) || 5;
 
     const valAchat = qte * coutAchat;
     const valVente = qte * prixVente;
@@ -187,10 +190,11 @@ export function calculateStockValuation(articles: CatalogueArticle[]) {
     valeurAchatTotale,
     valeurVenteTotale,
     margePotentielle,
-    nombreArticles: articles.length,
+    nombreArticles: list.length,
     totalArticlesEnStock,
     articlesEnAlerte,
-    nbAlertes: articlesEnAlerte.length
+    nbAlertes: articlesEnAlerte.length,
+    nombreAlertes: articlesEnAlerte.length
   };
 }
 
