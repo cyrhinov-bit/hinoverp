@@ -25,6 +25,7 @@ import { calculateStockValuation, formatCurrency } from '@hinov/core';
 
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -36,6 +37,7 @@ import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 export default function StocksModule() {
   const { hasModule, articles, clientsFournisseurs, addArticle, updateArticle, deleteArticle } = useErpData();
   const [openModal, setOpenModal] = useState(false);
+  const [editingArticle, setEditingArticle] = useState(null);
   const [filterType, setFilterType] = useState('ALL');
   const [supplierFilter, setSupplierFilter] = useState('ALL');
 
@@ -93,18 +95,59 @@ export default function StocksModule() {
     }
   };
 
+  const handleOpenCreate = () => {
+    setEditingArticle(null);
+    setFormData({
+      code_article: '',
+      designation: '',
+      type_article: 'CONSOMMABLE',
+      fournisseur_id: '',
+      fournisseur_nom: '',
+      quantite_stock: '',
+      cout_unitaire_achat: '',
+      prix_unitaire_vente: '',
+      seuil_alerte: '5',
+      unite: 'Pièce'
+    });
+    setOpenModal(true);
+  };
+
+  const handleOpenEdit = (article) => {
+    setEditingArticle(article);
+    setFormData({
+      code_article: article.code_article || '',
+      designation: article.designation || '',
+      type_article: article.type_article || 'CONSOMMABLE',
+      fournisseur_id: article.fournisseur_id || '',
+      fournisseur_nom: article.fournisseur_nom || '',
+      quantite_stock: article.quantite_stock !== undefined ? String(article.quantite_stock) : '',
+      cout_unitaire_achat: article.cout_unitaire_achat !== undefined ? String(article.cout_unitaire_achat) : '',
+      prix_unitaire_vente: article.prix_unitaire_vente !== undefined ? String(article.prix_unitaire_vente) : '',
+      seuil_alerte: article.seuil_alerte !== undefined ? String(article.seuil_alerte) : '5',
+      unite: article.unite || 'Pièce'
+    });
+    setOpenModal(true);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.designation) return;
 
-    addArticle({
+    const payload = {
       ...formData,
       quantite_stock: Number(formData.quantite_stock) || 0,
       cout_unitaire_achat: Number(formData.cout_unitaire_achat) || 0,
       prix_unitaire_vente: Number(formData.prix_unitaire_vente) || 0,
       seuil_alerte: Number(formData.seuil_alerte) || 5
-    });
+    };
 
+    if (editingArticle) {
+      updateArticle(editingArticle.id, payload);
+    } else {
+      addArticle(payload);
+    }
+
+    setEditingArticle(null);
     setFormData({
       code_article: '',
       designation: '',
@@ -204,7 +247,7 @@ export default function StocksModule() {
             color="primary"
             size="sm"
             startIcon={<AddIcon />}
-            onClick={() => setOpenModal(true)}
+            onClick={handleOpenCreate}
           >
             Nouvel Article
           </BsbButton>
@@ -352,6 +395,45 @@ export default function StocksModule() {
               )
             },
             {
+              id: 'marge',
+              label: 'Marge (Vente - Achat)',
+              align: 'right',
+              render: (row) => {
+                const vente = Number(row.prix_unitaire_vente) || 0;
+                const achat = Number(row.cout_unitaire_achat) || 0;
+                const marge = vente - achat;
+                const isPos = marge > 0;
+                const isNeg = marge < 0;
+                return (
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 700,
+                        color: isPos ? '#2E7D32' : isNeg ? '#C62828' : '#555',
+                        fontSize: '0.82rem'
+                      }}
+                    >
+                      {isPos ? '+' : ''}{formatCurrency(marge)}
+                    </Typography>
+                    {achat > 0 && (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: isPos ? '#388E3C' : isNeg ? '#D32F2F' : '#888',
+                          fontSize: '0.7rem',
+                          fontWeight: 600,
+                          display: 'block'
+                        }}
+                      >
+                        {isPos ? `+${((marge / achat) * 100).toFixed(1)}%` : `${((marge / achat) * 100).toFixed(1)}%`}
+                      </Typography>
+                    )}
+                  </Box>
+                );
+              }
+            },
+            {
               id: 'ajustement',
               label: 'Ajustement',
               align: 'center',
@@ -381,15 +463,26 @@ export default function StocksModule() {
               label: 'Actions',
               align: 'center',
               render: (row) => (
-                <Tooltip title="Supprimer cet article">
-                  <IconButton
-                    size="small"
-                    sx={{ color: '#E53935', '&:hover': { bgcolor: '#FFEBEE' } }}
-                    onClick={() => setDeleteConfirmArt(row)}
-                  >
-                    <DeleteOutlineIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+                <Stack direction="row" spacing={0.5} justifyContent="center" alignItems="center">
+                  <Tooltip title="Modifier cet article">
+                    <IconButton
+                      size="small"
+                      sx={{ color: '#1976D2', '&:hover': { bgcolor: '#E3F2FD' } }}
+                      onClick={() => handleOpenEdit(row)}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Supprimer cet article">
+                    <IconButton
+                      size="small"
+                      sx={{ color: '#E53935', '&:hover': { bgcolor: '#FFEBEE' } }}
+                      onClick={() => setDeleteConfirmArt(row)}
+                    >
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
               )
             }
           ]}
@@ -445,20 +538,29 @@ export default function StocksModule() {
         )}
       </BsbModal>
 
-      {/* Modal d'ajout article */}
+      {/* Modal d'ajout / modification article */}
       <BsbModal
         open={openModal}
-        onClose={() => setOpenModal(false)}
-        title="NOUVEL ARTICLE / PIÈCE DE RECHANGE"
-        headerColor="purple"
+        onClose={() => {
+          setOpenModal(false);
+          setEditingArticle(null);
+        }}
+        title={editingArticle ? "MODIFIER L'ARTICLE DU STOCK" : "NOUVEL ARTICLE / PIÈCE DE RECHANGE"}
+        headerColor={editingArticle ? "orange" : "purple"}
         maxWidth="sm"
         actions={
           <>
-            <BsbButton color="secondary" onClick={() => setOpenModal(false)}>
+            <BsbButton
+              color="secondary"
+              onClick={() => {
+                setOpenModal(false);
+                setEditingArticle(null);
+              }}
+            >
               Annuler
             </BsbButton>
-            <BsbButton color="primary" onClick={handleSubmit}>
-              Ajouter l'article
+            <BsbButton color={editingArticle ? "orange" : "primary"} onClick={handleSubmit}>
+              {editingArticle ? "Enregistrer les modifications" : "Ajouter l'article"}
             </BsbButton>
           </>
         }
