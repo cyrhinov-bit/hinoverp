@@ -485,7 +485,52 @@ export default function DashboardDefault() {
               </Paper>
             </Grid>
           )}
+
+          {canMaintenance && (
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2,
+                  border: '1px solid #e0e0e0',
+                  borderLeft: '4px solid #607D8B',
+                  borderRadius: '2px',
+                  transition: 'all 0.2s',
+                  '&:hover': { boxShadow: '0 3px 8px rgba(0,0,0,0.1)' }
+                }}
+              >
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#333' }}>
+                    Maintenance & Pannes
+                  </Typography>
+                  <Chip label="Technique" size="small" sx={{ bgcolor: '#eceff1', color: '#37474f', fontWeight: 700, fontSize: '0.65rem' }} />
+                </Stack>
+                <Typography variant="body2" sx={{ color: '#666', my: 1, fontSize: '0.78rem' }}>
+                  Suivi des pannes, fiches d'interventions sur sites et techniciens assignés.
+                </Typography>
+                <BsbButton
+                  size="xs"
+                  color="blue-grey"
+                  endIcon={<ArrowForwardIcon />}
+                  onClick={() => navigate('/maintenance')}
+                >
+                  Ouvrir Maintenance
+                </BsbButton>
+              </Paper>
+            </Grid>
+          )}
         </Grid>
+
+        {!(canPrestations || canCommissions || canCommerciaux || canTiers || canCaisse || canStocks || canMaintenance) && (
+          <Box sx={{ p: 3, textAlign: 'center' }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#64748b' }}>
+              Aucun service applicatif habilité
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#94a3b8', mt: 0.5 }}>
+              Votre profil utilisateur ne dispose actuellement d'aucun module activé. Contactez votre administrateur pour obtenir des accès.
+            </Typography>
+          </Box>
+        )}
       </BsbCard>
     </Box>
   );
