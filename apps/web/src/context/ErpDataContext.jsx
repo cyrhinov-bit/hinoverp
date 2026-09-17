@@ -567,7 +567,9 @@ export function ErpDataProvider({ children }) {
     const newItem = {
       ...item,
       id: item.id || `tier-${Date.now()}`,
-      created_at: new Date().toISOString()
+      cree_par: item.cree_par || currentUser?.id || 'usr-admin-1',
+      cree_par_nom: item.cree_par_nom || currentUser?.nom || currentUser?.email || 'Utilisateur',
+      created_at: item.created_at || new Date().toISOString()
     };
     setClientsFournisseurs(prev => [newItem, ...prev]);
     const supabase = getSupabaseClient();
@@ -604,9 +606,18 @@ export function ErpDataProvider({ children }) {
     }
   };
 
-  const getClients = () => clientsFournisseurs.filter(t => t.type === 'CLIENT');
-  const getFournisseurs = () => clientsFournisseurs.filter(t => t.type === 'FOURNISSEUR');
-  const getPartenaires = () => clientsFournisseurs.filter(t => t.type === 'PARTENAIRE');
+  const getClients = () => {
+    const list = currentUser?.role === 'ADMIN' ? clientsFournisseurs : clientsFournisseurs.filter(t => t.cree_par === currentUser?.id);
+    return list.filter(t => t.type === 'CLIENT');
+  };
+  const getFournisseurs = () => {
+    const list = currentUser?.role === 'ADMIN' ? clientsFournisseurs : clientsFournisseurs.filter(t => t.cree_par === currentUser?.id);
+    return list.filter(t => t.type === 'FOURNISSEUR');
+  };
+  const getPartenaires = () => {
+    const list = currentUser?.role === 'ADMIN' ? clientsFournisseurs : clientsFournisseurs.filter(t => t.cree_par === currentUser?.id);
+    return list.filter(t => t.type === 'PARTENAIRE');
+  };
 
   // ==========================================
   // Gestion Agents Commerciaux

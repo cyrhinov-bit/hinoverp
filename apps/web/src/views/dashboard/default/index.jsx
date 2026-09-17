@@ -73,14 +73,20 @@ export default function DashboardDefault() {
     });
   }, [mouvements, isAdmin, currentUser, canPrestations, canMaintenance, canStocks, canCommissions, canCaisse]);
 
+  // Tiers (Clients & Fournisseurs) cloisonnés selon le profil
+  const userScopedClientsFournisseurs = useMemo(() => {
+    if (isAdmin) return clientsFournisseurs;
+    return clientsFournisseurs.filter((t) => t.cree_par === currentUser?.id);
+  }, [clientsFournisseurs, isAdmin, currentUser]);
+
   // Calculs transversaux
   const cashBalance = calculateCashBalance(userScopedMouvements);
   const stockValuation = calculateStockValuation(articles);
   const maintenanceStats = calculateMaintenanceStats(interventions);
   const prestationsStats = calculatePrestationsStats(prestations);
   const thirdPartyStats = useMemo(() => {
-    return calculateThirdPartyStats(clientsFournisseurs, prestations, userScopedMouvements, interventions, articles);
-  }, [clientsFournisseurs, prestations, userScopedMouvements, interventions, articles]);
+    return calculateThirdPartyStats(userScopedClientsFournisseurs, prestations, userScopedMouvements, interventions, articles);
+  }, [userScopedClientsFournisseurs, prestations, userScopedMouvements, interventions, articles]);
   const commissionsStats = useMemo(() => {
     return calculateCommissionsStats(commissions);
   }, [commissions]);

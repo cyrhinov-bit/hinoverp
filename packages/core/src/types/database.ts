@@ -69,6 +69,8 @@ export interface ClientFournisseur {
   interventions_count?: number;
   articles_count?: number;
   notes?: string;
+  cree_par?: string;
+  cree_par_nom?: string;
   created_at?: string;
 }
 

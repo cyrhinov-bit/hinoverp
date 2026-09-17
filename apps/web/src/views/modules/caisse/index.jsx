@@ -58,8 +58,13 @@ export default function CaisseModule() {
   const canCommissions = isAdmin || hasModule('COMMISSIONS');
   const canCaisse = isAdmin || hasModule('CAISSE_DEPENSES');
 
-  const clients = useMemo(() => clientsFournisseurs.filter((t) => t.type === 'CLIENT'), [clientsFournisseurs]);
-  const fournisseurs = useMemo(() => clientsFournisseurs.filter((t) => t.type === 'FOURNISSEUR'), [clientsFournisseurs]);
+  const userScopedClientsFournisseurs = useMemo(() => {
+    if (isAdmin) return clientsFournisseurs;
+    return clientsFournisseurs.filter((t) => t.cree_par === currentUser?.id);
+  }, [clientsFournisseurs, isAdmin, currentUser]);
+
+  const clients = useMemo(() => userScopedClientsFournisseurs.filter((t) => t.type === 'CLIENT'), [userScopedClientsFournisseurs]);
+  const fournisseurs = useMemo(() => userScopedClientsFournisseurs.filter((t) => t.type === 'FOURNISSEUR'), [userScopedClientsFournisseurs]);
 
   // Options de modules disponibles pour la saisie selon les droits de l'utilisateur
   const availableModuleOptions = useMemo(() => {

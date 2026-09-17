@@ -47,7 +47,12 @@ export default function StocksModule() {
   // Confirmation Modal State: { article: Object } | null
   const [deleteConfirmArt, setDeleteConfirmArt] = useState(null);
 
-  const fournisseurs = useMemo(() => clientsFournisseurs.filter((t) => t.type === 'FOURNISSEUR'), [clientsFournisseurs]);
+  const userScopedClientsFournisseurs = useMemo(() => {
+    if (isAdmin) return clientsFournisseurs;
+    return clientsFournisseurs.filter((t) => t.cree_par === currentUser?.id);
+  }, [clientsFournisseurs, isAdmin, currentUser]);
+
+  const fournisseurs = useMemo(() => userScopedClientsFournisseurs.filter((t) => t.type === 'FOURNISSEUR'), [userScopedClientsFournisseurs]);
 
   const [formData, setFormData] = useState({
     code_article: '',

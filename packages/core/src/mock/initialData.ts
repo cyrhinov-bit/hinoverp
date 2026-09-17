@@ -125,7 +125,9 @@ export const INITIAL_CLIENTS_FOURNISSEURS: ClientFournisseur[] = [
     telephone: '+225 07 01 02 03 04',
     email: 'contact@sgb-ci.com',
     adresse: 'Plateau Avenue Chardy',
-    ville: 'Abidjan'
+    ville: 'Abidjan',
+    cree_par: 'usr-admin-1',
+    cree_par_nom: 'Evariste Gnonskan'
   },
   {
     id: 'a1111111-0000-0000-0000-000000000002',
@@ -134,7 +136,9 @@ export const INITIAL_CLIENTS_FOURNISSEURS: ClientFournisseur[] = [
     telephone: '+225 05 55 44 33 22',
     email: 'logistique@ivoirepalace.com',
     adresse: 'Cocody Boulevard Hassan II',
-    ville: 'Abidjan'
+    ville: 'Abidjan',
+    cree_par: 'usr-admin-1',
+    cree_par_nom: 'Evariste Gnonskan'
   },
   {
     id: 'a1111111-0000-0000-0000-000000000003',
@@ -143,7 +147,9 @@ export const INITIAL_CLIENTS_FOURNISSEURS: ClientFournisseur[] = [
     telephone: '+225 01 02 03 04 05',
     email: 'commandes@africdistrib.ci',
     adresse: 'Zone Industrielle Yopougon',
-    ville: 'Abidjan'
+    ville: 'Abidjan',
+    cree_par: 'usr-admin-1',
+    cree_par_nom: 'Evariste Gnonskan'
   },
   {
     id: 'a1111111-0000-0000-0000-000000000004',
@@ -152,7 +158,9 @@ export const INITIAL_CLIENTS_FOURNISSEURS: ClientFournisseur[] = [
     telephone: '+225 07 77 88 99 00',
     email: 'support@techenergy.ci',
     adresse: 'Treichville Rue 12',
-    ville: 'Abidjan'
+    ville: 'Abidjan',
+    cree_par: 'usr-admin-1',
+    cree_par_nom: 'Evariste Gnonskan'
   },
   {
     id: 'a1111111-0000-0000-0000-000000000005',
@@ -161,7 +169,9 @@ export const INITIAL_CLIENTS_FOURNISSEURS: ClientFournisseur[] = [
     telephone: '+225 27 20 21 22 23',
     email: 'direction@inovtech-ci.com',
     adresse: 'Deux Plateaux Vallon',
-    ville: 'Abidjan'
+    ville: 'Abidjan',
+    cree_par: 'usr-admin-1',
+    cree_par_nom: 'Evariste Gnonskan'
   }
 ];
 

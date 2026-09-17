@@ -49,7 +49,12 @@ export default function MaintenanceModule() {
   // Confirmation Modal State: { type: 'PRISE_EN_MAIN' | 'CLOTURER' | 'DELETE', item: Object } | null
   const [confirmModal, setConfirmModal] = useState(null);
 
-  const clients = useMemo(() => clientsFournisseurs.filter((t) => t.type === 'CLIENT'), [clientsFournisseurs]);
+  const userScopedClientsFournisseurs = useMemo(() => {
+    if (isAdmin) return clientsFournisseurs;
+    return clientsFournisseurs.filter((t) => t.cree_par === currentUser?.id);
+  }, [clientsFournisseurs, isAdmin, currentUser]);
+
+  const clients = useMemo(() => userScopedClientsFournisseurs.filter((t) => t.type === 'CLIENT'), [userScopedClientsFournisseurs]);
 
   // Formulaire d'ajout / modification
   const [formData, setFormData] = useState({

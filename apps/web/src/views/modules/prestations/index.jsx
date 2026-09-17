@@ -50,8 +50,13 @@ export default function PrestationsModule() {
   const [clientFilter, setClientFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
-  const clients = clientsFournisseurs.filter((t) => t.type === 'CLIENT');
-  const partenairesApporteurs = clientsFournisseurs.filter((t) => t.type === 'PARTENAIRE' || t.type === 'CLIENT');
+  const userScopedClientsFournisseurs = useMemo(() => {
+    if (isAdmin) return clientsFournisseurs;
+    return clientsFournisseurs.filter((t) => t.cree_par === currentUser?.id);
+  }, [clientsFournisseurs, isAdmin, currentUser]);
+
+  const clients = useMemo(() => userScopedClientsFournisseurs.filter((t) => t.type === 'CLIENT'), [userScopedClientsFournisseurs]);
+  const partenairesApporteurs = useMemo(() => userScopedClientsFournisseurs.filter((t) => t.type === 'PARTENAIRE' || t.type === 'CLIENT'), [userScopedClientsFournisseurs]);
 
   // Formulaire nouvelle prestation (11 colonnes)
   const [formData, setFormData] = useState({

@@ -24,6 +24,7 @@ import {
   BsbSelect
 } from 'components/adminbsb';
 
+import { useAuth } from 'context/AuthContext';
 import { useErpData } from 'context/ErpDataContext';
 import { formatCurrency, calculateThirdPartyStats } from '@hinov/core';
 
@@ -41,9 +42,13 @@ import HandshakeIcon from '@mui/icons-material/Handshake';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import BuildIcon from '@mui/icons-material/Build';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 
 export default function TiersManager() {
+  const { currentUser, isAdmin } = useAuth();
   const {
+    hasModule,
     clientsFournisseurs,
     prestations,
     interventions,
@@ -70,16 +75,37 @@ export default function TiersManager() {
     notes: ''
   });
 
-  // Analytics
-  const stats = calculateThirdPartyStats(clientsFournisseurs, prestations, mouvements, interventions, articles);
+  // Cloisonnement : Chaque utilisateur ne voit que ses clients/fournisseurs. Seul l'admin a une vue globale.
+  const userScopedClientsFournisseurs = useMemo(() => {
+    if (isAdmin) return clientsFournisseurs;
+    return clientsFournisseurs.filter((t) => t.cree_par === currentUser?.id);
+  }, [clientsFournisseurs, isAdmin, currentUser]);
+
+  // Analytics calculés sur le périmètre autorisé
+  const stats = useMemo(() => {
+    return calculateThirdPartyStats(userScopedClientsFournisseurs, prestations, mouvements, interventions, articles);
+  }, [userScopedClientsFournisseurs, prestations, mouvements, interventions, articles]);
 
   // Filtrage selon onglet
   const filteredList = useMemo(() => {
-    return clientsFournisseurs.filter((item) => {
+    return userScopedClientsFournisseurs.filter((item) => {
       if (activeTab === 'ALL') return true;
       return item.type === activeTab;
     });
-  }, [clientsFournisseurs, activeTab]);
+  }, [userScopedClientsFournisseurs, activeTab]);
+
+  if (!isAdmin && !hasModule('CLIENTS_FOURNISSEURS')) {
+    return (
+      <Box sx={{ p: 3, display: 'flex', justifyContent: 'center' }}>
+        <BsbCard title="Module Clients & Fournisseurs Désactivé" sx={{ maxWidth: 550, textAlign: 'center' }}>
+          <LockOutlinedIcon sx={{ fontSize: 64, color: '#F44336', mb: 2 }} />
+          <Typography variant="body1" sx={{ color: '#666', mb: 3 }}>
+            L'administrateur a désactivé le module <strong>Clients & Fournisseurs</strong> pour votre profil.
+          </Typography>
+        </BsbCard>
+      </Box>
+    );
+  }
 
   const handleOpenCreate = (type = 'CLIENT') => {
     setEditingId(null);
@@ -121,7 +147,11 @@ export default function TiersManager() {
     if (editingId) {
       updateClientFournisseur(editingId, formData);
     } else {
-      addClientFournisseur(formData);
+      addClientFournisseur({
+        ...formData,
+        cree_par: currentUser?.id || 'usr-admin-1',
+        cree_par_nom: currentUser?.nom || currentUser?.email || 'Utilisateur'
+      });
     }
     handleCloseModal();
   };
@@ -265,6 +295,23 @@ export default function TiersManager() {
           );
         }
       },
+      ...(isAdmin ? [{
+        id: 'cree_par',
+        label: 'Créateur / Portefeuille',
+        render: (tier) => (
+          <Chip
+            size="small"
+            label={tier.cree_par_nom || (tier.cree_par === 'usr-admin-1' ? 'Direction (Admin)' : 'Direction')}
+            sx={{
+              bgcolor: tier.cree_par === 'usr-admin-1' ? '#fef3c7' : '#e0f2fe',
+              color: tier.cree_par === 'usr-admin-1' ? '#92400e' : '#0369a1',
+              fontWeight: 700,
+              fontSize: '0.68rem',
+              height: 22
+            }}
+          />
+        )
+      }] : []),
       {
         id: 'actions',
         label: 'Actions',
@@ -301,7 +348,7 @@ export default function TiersManager() {
       }
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [clientsFournisseurs, prestations, interventions, articles]
+    [userScopedClientsFournisseurs, isAdmin, prestations, interventions, articles]
   );
 
   return (
@@ -313,7 +360,7 @@ export default function TiersManager() {
             variant="hover-expand"
             color="blue"
             icon={<BusinessIcon />}
-            title="CLIENTS ACTIFS"
+            title={isAdmin ? "TOTAL CLIENTS ACTIFS" : "MES CLIENTS ACTIFS"}
             number={stats.clientsCount}
             subtitle={`CA généré : ${formatCurrency(stats.totalVentesClients)}`}
           />
@@ -324,7 +371,7 @@ export default function TiersManager() {
             variant="hover-expand"
             color="orange"
             icon={<StoreIcon />}
-            title="FOURNISSEURS RÉFÉRENCÉS"
+            title={isAdmin ? "TOTAL FOURNISSEURS" : "MES FOURNISSEURS"}
             number={stats.fournisseursCount}
             subtitle={`Achats payés : ${formatCurrency(stats.totalDecaissementsFournisseurs)}`}
           />
@@ -346,17 +393,17 @@ export default function TiersManager() {
             variant="hover-expand"
             color="purple"
             icon={<HandshakeIcon />}
-            title="PARTENAIRES STRATÉGIQUES"
+            title="PARTENAIRES"
             number={stats.partenairesCount}
-            subtitle={`Total Répertoire : ${stats.totalTiers} Tiers`}
+            subtitle={`Portefeuille : ${stats.totalTiers} Tiers`}
           />
         </Grid>
       </Grid>
 
       {/* Main DataTable Card */}
       <BsbCard
-        title="ANNUAIRE DES TIERS (CLIENTS, FOURNISSEURS, PARTENAIRES)"
-        subtitle="Répertoire centralisé et historique croisé des relations d'affaires"
+        title={isAdmin ? "ANNUAIRE GLOBAL DES TIERS (VUE ADMINISTRATEUR CONSOLIDÉE)" : "MES CLIENTS & FOURNISSEURS"}
+        subtitle={isAdmin ? "Accès superviseur à l'intégralité des tiers de tous les collaborateurs" : "Gestion de votre portefeuille dédié de clients, fournisseurs et partenaires"}
         headerAction={
           <BsbButton
             color="primary"
@@ -382,7 +429,7 @@ export default function TiersManager() {
               }
             }}
           >
-            <Tab label={`Tous (${clientsFournisseurs.length})`} value="ALL" />
+            <Tab label={`Tous (${userScopedClientsFournisseurs.length})`} value="ALL" />
             <Tab label={`Clients (${stats.clientsCount})`} value="CLIENT" />
             <Tab label={`Fournisseurs (${stats.fournisseursCount})`} value="FOURNISSEUR" />
             <Tab label={`Partenaires (${stats.partenairesCount})`} value="PARTENAIRE" />
