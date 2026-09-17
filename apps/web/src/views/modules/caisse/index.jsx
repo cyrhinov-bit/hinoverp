@@ -51,12 +51,12 @@ export default function CaisseModule() {
   // Confirmation Modal State: { mvt: Object } | null
   const [deleteConfirmMvt, setDeleteConfirmMvt] = useState(null);
 
-  // Droits d'accès aux modules pour l'utilisateur connecté
-  const canPrestations = hasModule('PRESTATIONS');
-  const canMaintenance = hasModule('MAINTENANCE');
-  const canStocks = hasModule('STOCKS');
-  const canCommissions = hasModule('COMMISSIONS');
-  const canCaisse = hasModule('CAISSE_DEPENSES');
+  // Droits d'accès aux modules pour l'utilisateur connecté (L'administrateur a une vue sur TOUT)
+  const canPrestations = isAdmin || hasModule('PRESTATIONS');
+  const canMaintenance = isAdmin || hasModule('MAINTENANCE');
+  const canStocks = isAdmin || hasModule('STOCKS');
+  const canCommissions = isAdmin || hasModule('COMMISSIONS');
+  const canCaisse = isAdmin || hasModule('CAISSE_DEPENSES');
 
   const clients = useMemo(() => clientsFournisseurs.filter((t) => t.type === 'CLIENT'), [clientsFournisseurs]);
   const fournisseurs = useMemo(() => clientsFournisseurs.filter((t) => t.type === 'FOURNISSEUR'), [clientsFournisseurs]);

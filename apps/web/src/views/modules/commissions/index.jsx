@@ -20,6 +20,7 @@ import {
   BsbSelect
 } from 'components/adminbsb';
 
+import { useAuth } from 'context/AuthContext';
 import { useErpData } from 'context/ErpDataContext';
 import { formatCurrency, calculateCommissionsStats } from '@hinov/core';
 
@@ -36,6 +37,7 @@ import AddIcon from '@mui/icons-material/Add';
 import PaymentIcon from '@mui/icons-material/Payment';
 
 export default function CommissionsManager() {
+  const { currentUser, isAdmin } = useAuth();
   const {
     hasModule,
     commissions,
@@ -65,7 +67,7 @@ export default function CommissionsManager() {
     statut: 'A_PAYER'
   });
 
-  if (!hasModule('COMMISSIONS')) {
+  if (!isAdmin && !hasModule('COMMISSIONS')) {
     return (
       <Box sx={{ p: 3, display: 'flex', justifyContent: 'center' }}>
         <BsbCard title="Module Gestion des Commissions Désactivé" sx={{ maxWidth: 550, textAlign: 'center' }}>

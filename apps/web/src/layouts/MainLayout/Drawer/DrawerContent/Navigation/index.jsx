@@ -21,6 +21,8 @@ export default function NavigationDrawer() {
       // Si le groupe a des enfants (services ERP), filtrer chaque élément
       if (group.children) {
         const filteredChildren = group.children.filter((item) => {
+          // L'administrateur a une vue d'ensemble sur tous les modules
+          if (isAdmin) return true;
           // Si l'élément a un moduleCode spécifique, vérifier l'autorisation par toggle
           if (item.moduleCode) {
             return typeof hasModule === 'function' ? hasModule(item.moduleCode) : true;

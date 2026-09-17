@@ -20,6 +20,7 @@ import {
   BsbSelect
 } from 'components/adminbsb';
 
+import { useAuth } from 'context/AuthContext';
 import { useErpData } from 'context/ErpDataContext';
 import { calculateMaintenanceStats, formatCurrency } from '@hinov/core';
 
@@ -38,6 +39,7 @@ import TaskAltIcon from '@mui/icons-material/TaskAlt';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
 export default function MaintenanceModule() {
+  const { currentUser, isAdmin } = useAuth();
   const { hasModule, interventions, clientsFournisseurs, addIntervention, updateIntervention, deleteIntervention } = useErpData();
   const [openModal, setOpenModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -72,7 +74,7 @@ export default function MaintenanceModule() {
     return qty * unitPrice;
   }, [formData.quantite, formData.prix_unitaire]);
 
-  if (!hasModule('MAINTENANCE')) {
+  if (!isAdmin && !hasModule('MAINTENANCE')) {
     return (
       <Box sx={{ p: 3, display: 'flex', justifyContent: 'center' }}>
         <BsbCard sx={{ maxWidth: 550, textAlign: 'center', p: 4, borderTop: '3px solid #FF9800' }}>

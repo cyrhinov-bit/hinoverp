@@ -49,14 +49,14 @@ export default function DashboardDefault() {
     commissions 
   } = useErpData();
 
-  // Permissions par module
-  const canTiers = hasModule('CLIENTS_FOURNISSEURS');
-  const canCommerciaux = hasModule('COMMERCIAUX');
-  const canCommissions = hasModule('COMMISSIONS');
-  const canPrestations = hasModule('PRESTATIONS');
-  const canCaisse = hasModule('CAISSE_DEPENSES');
-  const canStocks = hasModule('STOCKS');
-  const canMaintenance = hasModule('MAINTENANCE');
+  // Permissions par module (L'administrateur a une vue sur TOUT)
+  const canTiers = isAdmin || hasModule('CLIENTS_FOURNISSEURS');
+  const canCommerciaux = isAdmin || hasModule('COMMERCIAUX');
+  const canCommissions = isAdmin || hasModule('COMMISSIONS');
+  const canPrestations = isAdmin || hasModule('PRESTATIONS');
+  const canCaisse = isAdmin || hasModule('CAISSE_DEPENSES');
+  const canStocks = isAdmin || hasModule('STOCKS');
+  const canMaintenance = isAdmin || hasModule('MAINTENANCE');
 
   // Mouvements de caisse cloisonnés selon le périmètre de l'utilisateur
   const userScopedMouvements = useMemo(() => {

@@ -19,6 +19,7 @@ import {
   BsbSelect
 } from 'components/adminbsb';
 
+import { useAuth } from 'context/AuthContext';
 import { useErpData } from 'context/ErpDataContext';
 import { calculatePrestationsStats, calculatePrestationLine, formatCurrency } from '@hinov/core';
 
@@ -33,6 +34,7 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import PaidIcon from '@mui/icons-material/Paid';
 
 export default function PrestationsModule() {
+  const { currentUser, isAdmin } = useAuth();
   const { 
     hasModule, 
     prestations, 
@@ -81,7 +83,7 @@ export default function PrestationsModule() {
   const [simulCommCommercial, setSimulCommCommercial] = useState(50000);
   const [simulCommResponsable, setSimulCommResponsable] = useState(25000);
 
-  if (!hasModule('PRESTATIONS')) {
+  if (!isAdmin && !hasModule('PRESTATIONS')) {
     return (
       <Box sx={{ p: 3, display: 'flex', justifyContent: 'center' }}>
         <BsbCard title="Module Prestations & Commandes Désactivé" sx={{ maxWidth: 550, textAlign: 'center' }}>

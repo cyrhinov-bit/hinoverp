@@ -20,6 +20,7 @@ import {
   BsbSelect
 } from 'components/adminbsb';
 
+import { useAuth } from 'context/AuthContext';
 import { useErpData } from 'context/ErpDataContext';
 import { calculateStockValuation, formatCurrency } from '@hinov/core';
 
@@ -36,6 +37,7 @@ import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import SavingsIcon from '@mui/icons-material/Savings';
 
 export default function StocksModule() {
+  const { currentUser, isAdmin } = useAuth();
   const { hasModule, articles, clientsFournisseurs, addArticle, updateArticle, deleteArticle } = useErpData();
   const [openModal, setOpenModal] = useState(false);
   const [editingArticle, setEditingArticle] = useState(null);
@@ -60,7 +62,7 @@ export default function StocksModule() {
     unite: 'Pièce'
   });
 
-  if (!hasModule('STOCKS')) {
+  if (!isAdmin && !hasModule('STOCKS')) {
     return (
       <Box sx={{ p: 3, display: 'flex', justifyContent: 'center' }}>
         <BsbCard sx={{ maxWidth: 550, textAlign: 'center', p: 4, borderTop: '3px solid #9C27B0' }}>

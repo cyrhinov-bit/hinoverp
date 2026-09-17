@@ -58,8 +58,8 @@ export default function ModuleGuard({ children, moduleCode, adminOnly = false })
     );
   }
 
-  // 3. Vérification des habilitations par module
-  if (moduleCode && !hasModule(moduleCode)) {
+  // 3. Vérification des habilitations par module (L'administrateur a une vue sur TOUT sans restriction)
+  if (moduleCode && !isAdmin && !hasModule(moduleCode)) {
     return (
       <Box sx={{ p: 3, maxWidth: 650, mx: 'auto', mt: 4 }}>
         <BsbCard

@@ -22,6 +22,7 @@ import {
   BsbSelect
 } from 'components/adminbsb';
 
+import { useAuth } from 'context/AuthContext';
 import { useErpData } from 'context/ErpDataContext';
 import { formatCurrency, calculateCommercialsStats } from '@hinov/core';
 
@@ -38,6 +39,7 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 
 export default function CommerciauxManager() {
+  const { currentUser, isAdmin } = useAuth();
   const {
     hasModule,
     agentsCommerciaux,
@@ -64,7 +66,7 @@ export default function CommerciauxManager() {
     actif: true
   });
 
-  if (!hasModule('COMMERCIAUX')) {
+  if (!isAdmin && !hasModule('COMMERCIAUX')) {
     return (
       <Box sx={{ p: 3, display: 'flex', justifyContent: 'center' }}>
         <BsbCard title="Module Agents Commerciaux Désactivé" sx={{ maxWidth: 550, textAlign: 'center' }}>
