@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Grid,
@@ -33,6 +34,7 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import AdminPanelSettingsTwoToneIcon from '@mui/icons-material/AdminPanelSettingsTwoTone';
 
 export default function PermissionsManager() {
+  const navigate = useNavigate();
   const { currentUser, isAdmin, switchUser } = useAuth();
   const { profiles, modules, userModules, toggleUserModule } = useErpData();
   const [snackbar, setSnackbar] = useState({ open: false, message: '' });
@@ -46,6 +48,11 @@ export default function PermissionsManager() {
       open: true,
       message: `Module "${moduleName}" ${newVal ? 'ACTIVÉ' : 'DÉSACTIVÉ'} pour ${userName}`
     });
+  };
+
+  const handleTestProfile = (userRow) => {
+    switchUser(userRow);
+    navigate('/dashboard/default');
   };
 
   return (
@@ -200,13 +207,7 @@ export default function PermissionsManager() {
                       <Chip
                         label={isCurrentActive ? "Profil actif" : "Tester ce profil"}
                         clickable={!isCurrentActive}
-                        onClick={() => {
-                          switchUser(userRow);
-                          setSnackbar({
-                            open: true,
-                            message: `Vous êtes maintenant connecté en tant que ${userRow.nom}`
-                          });
-                        }}
+                        onClick={() => handleTestProfile(userRow)}
                         color={isCurrentActive ? "success" : "primary"}
                         variant={isCurrentActive ? "filled" : "outlined"}
                         icon={isCurrentActive ? <CheckCircleOutlineIcon /> : <ToggleOnIcon />}

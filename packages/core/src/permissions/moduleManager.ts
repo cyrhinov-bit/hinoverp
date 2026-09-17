@@ -39,31 +39,43 @@ export function applyToggleUserModule(
   userModules: UserModule[],
   userId: string,
   moduleId: string,
-  isEnabled: boolean
+  isEnabled: boolean,
+  allModules: ERPModule[] = []
 ): UserModule[] {
-  const existingIndex = userModules.findIndex(
-    um => um.user_id === userId && um.module_id === moduleId
-  );
+  const targetModule = allModules.find(m => m.id === moduleId || m.code_module === moduleId);
+  const targetId = targetModule ? targetModule.id : moduleId;
+  const targetCode = targetModule ? targetModule.code_module : moduleId;
 
-  if (existingIndex >= 0) {
-    const updated = [...userModules];
-    updated[existingIndex] = {
-      ...updated[existingIndex],
-      is_enabled: isEnabled,
-      updated_at: new Date().toISOString()
-    };
+  let found = false;
+  const updated = userModules.map(um => {
+    if (
+      um.user_id === userId &&
+      (um.module_id === targetId || um.module_id === targetCode || um.module_id === moduleId)
+    ) {
+      found = true;
+      return {
+        ...um,
+        module_id: targetId,
+        is_enabled: isEnabled,
+        updated_at: new Date().toISOString()
+      };
+    }
+    return um;
+  });
+
+  if (found) {
     return updated;
   }
 
-  // Créer une nouvelle liaison
+  // Créer une nouvelle liaison si elle n'existait pas encore
   const newLink: UserModule = {
     id: `um-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
     user_id: userId,
-    module_id: moduleId,
+    module_id: targetId,
     is_enabled: isEnabled,
     updated_at: new Date().toISOString()
   };
 
-  return [...userModules, newLink];
+  return [...updated, newLink];
 }
 

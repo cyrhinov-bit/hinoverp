@@ -61,7 +61,8 @@ export default function UsersManager() {
     resetUserPassword,
     deleteProfile,
     toggleUserStatus,
-    toggleUserModule
+    toggleUserModule,
+    setUserModulesForUser
   } = useErpData();
 
   // Modals state
@@ -239,11 +240,8 @@ export default function UsersManager() {
         updateData.password = formData.password.trim();
       }
       updateProfile(editingUser.id, updateData);
-      // Mettre à jour les modules
-      modules.forEach((m) => {
-        const isEnabled = formData.role === 'ADMIN' || formData.enabledModules.includes(m.code_module) || m.code_module === 'CAISSE_DEPENSES';
-        toggleUserModule(editingUser.id, m.id, isEnabled);
-      });
+      // Mettre à jour les modules de façon atomique
+      setUserModulesForUser(editingUser.id, formData.enabledModules, formData.role === 'ADMIN');
       setToast({
         open: true,
         message: `Compte utilisateur ${cleanNom} mis à jour avec succès.`,

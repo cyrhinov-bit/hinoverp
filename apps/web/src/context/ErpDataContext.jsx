@@ -207,8 +207,11 @@ export function ErpDataProvider({ children }) {
 
   // Toggle de permission pour l'administrateur
   const toggleUserModule = async (userId, moduleId, isEnabled) => {
-    const updated = applyToggleUserModule(userModules, userId, moduleId, isEnabled);
-    setUserModules(updated);
+    setUserModules((prev) => {
+      const updated = applyToggleUserModule(prev, userId, moduleId, isEnabled, modules);
+      localStorage.setItem('hinov_user_modules', JSON.stringify(updated));
+      return updated;
+    });
 
     // Si Supabase est connecté, mettre à jour la table user_modules
     const supabase = getSupabaseClient();
@@ -221,6 +224,23 @@ export function ErpDataProvider({ children }) {
         console.warn('Supabase toggle sync failed:', err);
       }
     }
+  };
+
+  // Mise à jour globale des modules d'un utilisateur (utilisé lors de l'édition d'un utilisateur)
+  const setUserModulesForUser = (userId, enabledModuleCodes = [], isRoleAdmin = false) => {
+    setUserModules((prev) => {
+      const otherLinks = prev.filter((um) => um.user_id !== userId);
+      const newLinks = modules.map((mod, idx) => ({
+        id: `um-${Date.now()}-${idx}`,
+        user_id: userId,
+        module_id: mod.id,
+        is_enabled: isRoleAdmin ? true : enabledModuleCodes.includes(mod.code_module) || mod.code_module === 'CAISSE_DEPENSES',
+        updated_at: new Date().toISOString()
+      }));
+      const updated = [...otherLinks, ...newLinks];
+      localStorage.setItem('hinov_user_modules', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   // ==========================================
@@ -668,6 +688,7 @@ export function ErpDataProvider({ children }) {
         commissions,
         hasModule,
         toggleUserModule,
+        setUserModulesForUser,
         addClientFournisseur,
         updateClientFournisseur,
         deleteClientFournisseur,
