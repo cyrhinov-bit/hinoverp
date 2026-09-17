@@ -263,31 +263,80 @@ export function ErpDataProvider({ children }) {
         }
 
         if (tiersRes.data && tiersRes.data.length > 0) {
-          setClientsFournisseurs(tiersRes.data);
+          setClientsFournisseurs((prev) => {
+            const map = new Map();
+            tiersRes.data.forEach((t) => map.set(t.id, t));
+            prev.forEach((t) => {
+              if (!map.has(t.id)) map.set(t.id, t);
+            });
+            return Array.from(map.values());
+          });
         }
 
         if (comRes.data && comRes.data.length > 0) {
-          setAgentsCommerciaux(comRes.data);
+          setAgentsCommerciaux((prev) => {
+            const map = new Map();
+            comRes.data.forEach((c) => map.set(c.id, c));
+            prev.forEach((c) => {
+              if (!map.has(c.id)) map.set(c.id, c);
+            });
+            return Array.from(map.values());
+          });
         }
 
         if (artRes.data && artRes.data.length > 0) {
-          setArticles(artRes.data);
+          setArticles((prev) => {
+            const map = new Map();
+            artRes.data.forEach((a) => map.set(a.id, a));
+            prev.forEach((a) => {
+              if (!map.has(a.id)) map.set(a.id, a);
+            });
+            return Array.from(map.values());
+          });
         }
 
         if (intRes.data && intRes.data.length > 0) {
-          setInterventions(intRes.data);
+          setInterventions((prev) => {
+            const map = new Map();
+            intRes.data.forEach((i) => map.set(i.id, i));
+            prev.forEach((i) => {
+              if (!map.has(i.id)) map.set(i.id, i);
+            });
+            return Array.from(map.values());
+          });
         }
 
         if (mvtRes.data && mvtRes.data.length > 0) {
-          setMouvements(mvtRes.data);
+          setMouvements((prev) => {
+            const map = new Map();
+            mvtRes.data.forEach((m) => map.set(m.id, m));
+            prev.forEach((m) => {
+              if (!map.has(m.id)) map.set(m.id, m);
+            });
+            return Array.from(map.values());
+          });
         }
 
         if (prestRes.data && prestRes.data.length > 0) {
-          setPrestations(prestRes.data);
+          setPrestations((prev) => {
+            const map = new Map();
+            prestRes.data.forEach((p) => map.set(p.id, p));
+            prev.forEach((p) => {
+              if (!map.has(p.id)) map.set(p.id, p);
+            });
+            return Array.from(map.values());
+          });
         }
 
         if (commRes.data && commRes.data.length > 0) {
-          setCommissions(commRes.data);
+          setCommissions((prev) => {
+            const map = new Map();
+            commRes.data.forEach((c) => map.set(c.id, c));
+            prev.forEach((c) => {
+              if (!map.has(c.id)) map.set(c.id, c);
+            });
+            return Array.from(map.values());
+          });
         }
       } catch (err) {
         console.warn('Supabase hydration error:', err);
@@ -823,6 +872,9 @@ export function ErpDataProvider({ children }) {
     const newMvt = {
       ...mvt,
       id: mvt.id || `mvt-${Date.now()}`,
+      tier_id: mvt.tier_id && String(mvt.tier_id).trim() !== '' ? mvt.tier_id : null,
+      prestation_id: mvt.prestation_id && String(mvt.prestation_id).trim() !== '' ? mvt.prestation_id : null,
+      montant: Number(mvt.montant) || 0,
       created_at: new Date().toISOString(),
       date: mvt.date || new Date().toISOString()
     };
@@ -879,6 +931,10 @@ export function ErpDataProvider({ children }) {
     const newPrest = {
       ...prest,
       id: prestId,
+      client_id: prest.client_id && String(prest.client_id).trim() !== '' ? prest.client_id : null,
+      agent_commercial_id: prest.agent_commercial_id && String(prest.agent_commercial_id).trim() !== '' ? prest.agent_commercial_id : null,
+      apporteur_id: prest.apporteur_id && String(prest.apporteur_id).trim() !== '' ? prest.apporteur_id : null,
+      responsable_service_id: prest.responsable_service_id && String(prest.responsable_service_id).trim() !== '' ? prest.responsable_service_id : null,
       reference: prestRef,
       designation: designation,
       description: designation,
@@ -911,7 +967,7 @@ export function ErpDataProvider({ children }) {
         prestation_id: prestId,
         prestation_ref: prestRef,
         type: 'APPORTEUR',
-        beneficiaire_id: prest.apporteur_id || undefined,
+        beneficiaire_id: (prest.apporteur_id && String(prest.apporteur_id).trim() !== '') ? prest.apporteur_id : null,
         beneficiaire_nom: prest.apporteur_nom || 'Apporteur d\'affaires',
         montant_prestation: calc.prixClientFinal,
         taux_pourcentage: commAppTaux,
@@ -928,7 +984,7 @@ export function ErpDataProvider({ children }) {
         prestation_id: prestId,
         prestation_ref: prestRef,
         type: 'AGENT_COMMERCIAL',
-        beneficiaire_id: prest.commercial_id || undefined,
+        beneficiaire_id: (prest.commercial_id && String(prest.commercial_id).trim() !== '') ? prest.commercial_id : null,
         beneficiaire_nom: prest.commercial_nom || 'Agent Commercial',
         montant_prestation: calc.prixClientFinal,
         montant_commission: calc.commissionCommercial,
@@ -944,7 +1000,7 @@ export function ErpDataProvider({ children }) {
         prestation_id: prestId,
         prestation_ref: prestRef,
         type: 'RESPONSABLE',
-        beneficiaire_id: prest.responsable_service_id || undefined,
+        beneficiaire_id: (prest.responsable_service_id && String(prest.responsable_service_id).trim() !== '') ? prest.responsable_service_id : null,
         beneficiaire_nom: prest.responsable_service_nom || 'Responsable de Service',
         montant_prestation: calc.prixClientFinal,
         montant_commission: calc.commissionResponsable,
