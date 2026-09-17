@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 // material-ui
@@ -7,7 +7,9 @@ import {
   Stack,
   Typography,
   Alert,
-  IconButton
+  IconButton,
+  FormControlLabel,
+  Checkbox
 } from '@mui/material';
 
 // components
@@ -32,8 +34,16 @@ export default function AuthLogin() {
 
   const from = location.state?.from?.pathname || '/';
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(() => {
+    return localStorage.getItem('hinov_saved_email') || '';
+  });
+  const [password, setPassword] = useState(() => {
+    return localStorage.getItem('hinov_saved_password') || '';
+  });
+  const [rememberMe, setRememberMe] = useState(() => {
+    const saved = localStorage.getItem('hinov_remember_me');
+    return saved !== null ? saved === 'true' : true;
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -52,6 +62,15 @@ export default function AuthLogin() {
     try {
       const result = login(email.trim(), password, profiles);
       if (result.success) {
+        if (rememberMe) {
+          localStorage.setItem('hinov_remember_me', 'true');
+          localStorage.setItem('hinov_saved_email', email.trim());
+          localStorage.setItem('hinov_saved_password', password);
+        } else {
+          localStorage.setItem('hinov_remember_me', 'false');
+          localStorage.removeItem('hinov_saved_email');
+          localStorage.removeItem('hinov_saved_password');
+        }
         navigate(from, { replace: true });
       } else {
         setErrorMessage(result.error || 'Identifiants invalides.');
@@ -80,7 +99,7 @@ export default function AuthLogin() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="exemple@hinovgroup.com"
-            autoFocus
+            autoFocus={!email}
           />
         </Box>
 
@@ -107,6 +126,30 @@ export default function AuthLogin() {
             </IconButton>
           </Stack>
         </Box>
+
+        {/* Option : Se souvenir de moi */}
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: -0.5 }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                size="small"
+                sx={{
+                  color: '#9C27B0',
+                  '&.Mui-checked': {
+                    color: '#9C27B0'
+                  }
+                }}
+              />
+            }
+            label={
+              <Typography variant="body2" sx={{ fontWeight: 600, color: '#444', fontSize: '0.85rem', userSelect: 'none' }}>
+                Se souvenir de moi
+              </Typography>
+            }
+          />
+        </Stack>
 
         <BsbButton
           type="submit"
