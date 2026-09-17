@@ -8,10 +8,14 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- 1. TABLE : PROFILES (Utilisateurs de l'ERP)
 CREATE TABLE IF NOT EXISTS public.profiles (
-    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY,
     nom TEXT NOT NULL,
-    email TEXT,
+    email TEXT UNIQUE,
+    password TEXT,
+    telephone TEXT,
+    poste TEXT,
     role TEXT NOT NULL DEFAULT 'USER' CHECK (role IN ('ADMIN', 'USER')),
+    actif BOOLEAN NOT NULL DEFAULT true,
     avatar_url TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
@@ -19,7 +23,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 
 -- 2. TABLE : MODULES (Liste des modules configurables dans l'ERP)
 CREATE TABLE IF NOT EXISTS public.modules (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id TEXT PRIMARY KEY,
     code_module TEXT UNIQUE NOT NULL CHECK (code_module IN ('MAINTENANCE', 'STOCKS', 'CAISSE_DEPENSES', 'PRESTATIONS', 'CLIENTS_FOURNISSEURS', 'COMMERCIAUX', 'COMMISSIONS')),
     nom TEXT NOT NULL,
     description TEXT,
@@ -30,9 +34,9 @@ CREATE TABLE IF NOT EXISTS public.modules (
 
 -- 3. TABLE : USER_MODULES (Gestion des permissions par interrupteur Toggle)
 CREATE TABLE IF NOT EXISTS public.user_modules (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    module_id UUID NOT NULL REFERENCES public.modules(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    user_id TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    module_id TEXT NOT NULL,
     is_enabled BOOLEAN NOT NULL DEFAULT false,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     CONSTRAINT uq_user_module UNIQUE (user_id, module_id)
@@ -40,43 +44,47 @@ CREATE TABLE IF NOT EXISTS public.user_modules (
 
 -- 4. TABLE : CLIENTS_FOURNISSEURS (Tiers de l'ERP)
 CREATE TABLE IF NOT EXISTS public.clients_fournisseurs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id TEXT PRIMARY KEY,
     type TEXT NOT NULL CHECK (type IN ('CLIENT', 'FOURNISSEUR', 'PARTENAIRE')),
     nom TEXT NOT NULL,
     telephone TEXT,
     email TEXT,
     adresse TEXT,
     ville TEXT,
+    notes TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
 -- 5. TABLE : CATALOGUE_ARTICLES (Gestion des stocks et consommables)
 CREATE TABLE IF NOT EXISTS public.catalogue_articles (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    code_article TEXT UNIQUE,
+    id TEXT PRIMARY KEY,
+    code_article TEXT,
     designation TEXT NOT NULL,
     type_article TEXT NOT NULL DEFAULT 'CONSOMMABLE',
     quantite_stock NUMERIC(12, 2) NOT NULL DEFAULT 0,
     cout_unitaire_achat NUMERIC(12, 2) NOT NULL DEFAULT 0,
     prix_unitaire_vente NUMERIC(12, 2) NOT NULL DEFAULT 0,
     seuil_alerte NUMERIC(12, 2) NOT NULL DEFAULT 5,
-    unite TEXT DEFAULT 'Unité',
-    fournisseur_id UUID REFERENCES public.clients_fournisseurs(id) ON DELETE SET NULL,
+    unite TEXT DEFAULT 'Pièce',
+    fournisseur_id TEXT REFERENCES public.clients_fournisseurs(id) ON DELETE SET NULL,
+    fournisseur_nom TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
 -- 6. TABLE : INTERVENTIONS_MAINTENANCE (Suivi technique & pannes)
 CREATE TABLE IF NOT EXISTS public.interventions_maintenance (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id TEXT PRIMARY KEY,
     site_agence TEXT NOT NULL,
     utilisateur_concerne TEXT,
-    client_id UUID REFERENCES public.clients_fournisseurs(id) ON DELETE SET NULL,
+    client_id TEXT REFERENCES public.clients_fournisseurs(id) ON DELETE SET NULL,
+    client_nom TEXT,
     equipement TEXT NOT NULL,
     observation TEXT,
     travaux TEXT,
-    prix NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    prix_unitaire NUMERIC(12, 2) DEFAULT 0,
     quantite NUMERIC(12, 2) NOT NULL DEFAULT 1,
+    prix NUMERIC(12, 2) NOT NULL DEFAULT 0,
     statut TEXT NOT NULL DEFAULT 'EN_ATTENTE' CHECK (statut IN ('EN_ATTENTE', 'EN_COURS', 'TERMINEE', 'ANNULEE')),
     priorite TEXT NOT NULL DEFAULT 'MOYENNE' CHECK (priorite IN ('BASSE', 'MOYENNE', 'HAUTE', 'URGENTE')),
     technicien_assigne TEXT,
@@ -86,29 +94,50 @@ CREATE TABLE IF NOT EXISTS public.interventions_maintenance (
 
 -- 7. TABLE : MOUVEMENTS_CAISSE (Journal de trésorerie Entrées / Sorties)
 CREATE TABLE IF NOT EXISTS public.mouvements_caisse (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id TEXT PRIMARY KEY,
     type TEXT NOT NULL CHECK (type IN ('ENTREE', 'SORTIE')),
     montant NUMERIC(12, 2) NOT NULL CHECK (montant >= 0),
     motif TEXT NOT NULL,
     categorie TEXT DEFAULT 'GENERAL',
-    tier_id UUID REFERENCES public.clients_fournisseurs(id) ON DELETE SET NULL,
+    module_code TEXT DEFAULT 'GENERAL',
+    tier_id TEXT REFERENCES public.clients_fournisseurs(id) ON DELETE SET NULL,
     tier_type TEXT CHECK (tier_type IN ('CLIENT', 'FOURNISSEUR', 'PARTENAIRE', 'AUTRE')),
+    tier_nom TEXT,
     beneficiaire_emetteur TEXT,
     mode_reglement TEXT DEFAULT 'ESPECES' CHECK (mode_reglement IN ('ESPECES', 'CHEQUE', 'VIREMENT', 'MOBILE_MONEY')),
     date TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-    cree_par UUID REFERENCES public.profiles(id),
+    cree_par TEXT,
+    cree_par_nom TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
--- 8. TABLE : PRESTATIONS_COMMANDES (Prestations de services et marges)
+-- 8. TABLE : PRESTATIONS_COMMANDES (Prestations de services et marges 11 colonnes)
 CREATE TABLE IF NOT EXISTS public.prestations_commandes (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id TEXT PRIMARY KEY,
     reference TEXT UNIQUE NOT NULL,
-    client_id UUID REFERENCES public.clients_fournisseurs(id) ON DELETE SET NULL,
-    description TEXT NOT NULL,
-    montant_total_vente NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    client_id TEXT REFERENCES public.clients_fournisseurs(id) ON DELETE SET NULL,
+    client_nom TEXT,
+    description TEXT,
+    designation TEXT,
+    quantite NUMERIC(12, 2) DEFAULT 1,
+    cout_unitaire_achat NUMERIC(12, 2) DEFAULT 0,
     cout_total_revient NUMERIC(12, 2) NOT NULL DEFAULT 0,
-    marge_nette NUMERIC(12, 2) GENERATED ALWAYS AS (montant_total_vente - cout_total_revient) STORED,
+    prix_unitaire_vente NUMERIC(12, 2) DEFAULT 0,
+    montant_total_vente NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    marge_interne NUMERIC(12, 2) DEFAULT 0,
+    marge_brute NUMERIC(12, 2) DEFAULT 0,
+    commission_apporteur_taux NUMERIC(5, 2) DEFAULT 10,
+    commission_apporteur_montant NUMERIC(12, 2) DEFAULT 0,
+    apporteur_id TEXT,
+    apporteur_nom TEXT,
+    commission_responsable_montant NUMERIC(12, 2) DEFAULT 0,
+    responsable_service_id TEXT,
+    responsable_service_nom TEXT,
+    commission_commercial_montant NUMERIC(12, 2) DEFAULT 0,
+    commercial_id TEXT,
+    commercial_nom TEXT,
+    benefice_reel NUMERIC(12, 2) DEFAULT 0,
+    marge_nette NUMERIC(12, 2) DEFAULT 0,
     statut TEXT NOT NULL DEFAULT 'DEVIS' CHECK (statut IN ('DEVIS', 'CONFIRMEE', 'EN_COURS', 'FACTUREE', 'PAYEE')),
     date_commande TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
@@ -116,7 +145,7 @@ CREATE TABLE IF NOT EXISTS public.prestations_commandes (
 
 -- 9. TABLE : AGENTS_COMMERCIAUX (Force de vente)
 CREATE TABLE IF NOT EXISTS public.agents_commerciaux (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id TEXT PRIMARY KEY,
     matricule TEXT UNIQUE,
     nom TEXT NOT NULL,
     prenom TEXT,
@@ -134,11 +163,11 @@ CREATE TABLE IF NOT EXISTS public.agents_commerciaux (
 
 -- 10. TABLE : COMMISSIONS (Apporteurs, Agents et Responsables)
 CREATE TABLE IF NOT EXISTS public.commissions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    prestation_id UUID REFERENCES public.prestations_commandes(id) ON DELETE CASCADE,
+    id TEXT PRIMARY KEY,
+    prestation_id TEXT REFERENCES public.prestations_commandes(id) ON DELETE CASCADE,
     prestation_ref TEXT NOT NULL,
     type TEXT NOT NULL CHECK (type IN ('APPORTEUR', 'AGENT_COMMERCIAL', 'RESPONSABLE')),
-    beneficiaire_id UUID,
+    beneficiaire_id TEXT,
     beneficiaire_nom TEXT NOT NULL,
     beneficiaire_contact TEXT,
     montant_prestation NUMERIC(12, 2) NOT NULL DEFAULT 0,
@@ -147,7 +176,7 @@ CREATE TABLE IF NOT EXISTS public.commissions (
     statut TEXT NOT NULL DEFAULT 'A_VALIDER' CHECK (statut IN ('A_VALIDER', 'A_PAYER', 'PAYEE', 'ANNULEE')),
     date_reglement TIMESTAMPTZ,
     mode_reglement TEXT CHECK (mode_reglement IN ('ESPECES', 'CHEQUE', 'VIREMENT', 'MOBILE_MONEY')),
-    mouvement_caisse_id UUID REFERENCES public.mouvements_caisse(id) ON DELETE SET NULL,
+    mouvement_caisse_id TEXT REFERENCES public.mouvements_caisse(id) ON DELETE SET NULL,
     note TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );

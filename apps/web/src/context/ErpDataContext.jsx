@@ -200,10 +200,28 @@ export function ErpDataProvider({ children }) {
     let isMounted = true;
     async function hydrateFromSupabase() {
       try {
-        const [profRes, modRes, umRes] = await Promise.all([
+        const [
+          profRes,
+          modRes,
+          umRes,
+          tiersRes,
+          comRes,
+          artRes,
+          intRes,
+          mvtRes,
+          prestRes,
+          commRes
+        ] = await Promise.all([
           supabase.from('profiles').select('*'),
           supabase.from('modules').select('*'),
-          supabase.from('user_modules').select('*')
+          supabase.from('user_modules').select('*'),
+          supabase.from('clients_fournisseurs').select('*'),
+          supabase.from('agents_commerciaux').select('*'),
+          supabase.from('catalogue_articles').select('*'),
+          supabase.from('interventions_maintenance').select('*'),
+          supabase.from('mouvements_caisse').select('*'),
+          supabase.from('prestations_commandes').select('*'),
+          supabase.from('commissions').select('*')
         ]);
 
         if (!isMounted) return;
@@ -233,6 +251,34 @@ export function ErpDataProvider({ children }) {
             });
             return Array.from(map.values());
           });
+        }
+
+        if (tiersRes.data && tiersRes.data.length > 0) {
+          setClientsFournisseurs(tiersRes.data);
+        }
+
+        if (comRes.data && comRes.data.length > 0) {
+          setAgentsCommerciaux(comRes.data);
+        }
+
+        if (artRes.data && artRes.data.length > 0) {
+          setArticles(artRes.data);
+        }
+
+        if (intRes.data && intRes.data.length > 0) {
+          setInterventions(intRes.data);
+        }
+
+        if (mvtRes.data && mvtRes.data.length > 0) {
+          setMouvements(mvtRes.data);
+        }
+
+        if (prestRes.data && prestRes.data.length > 0) {
+          setPrestations(prestRes.data);
+        }
+
+        if (commRes.data && commRes.data.length > 0) {
+          setCommissions(commRes.data);
         }
       } catch (err) {
         console.warn('Supabase hydration error:', err);
@@ -459,21 +505,45 @@ export function ErpDataProvider({ children }) {
   // ==========================================
   // Gestion Clients & Fournisseurs (Tiers)
   // ==========================================
-  const addClientFournisseur = (item) => {
+  const addClientFournisseur = async (item) => {
     const newItem = {
       ...item,
-      id: `tier-${Date.now()}`,
+      id: item.id || `tier-${Date.now()}`,
       created_at: new Date().toISOString()
     };
     setClientsFournisseurs(prev => [newItem, ...prev]);
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from('clients_fournisseurs').upsert([newItem]);
+      } catch (err) {
+        console.warn('Supabase add tier:', err);
+      }
+    }
   };
 
-  const updateClientFournisseur = (id, updates) => {
+  const updateClientFournisseur = async (id, updates) => {
     setClientsFournisseurs(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from('clients_fournisseurs').update(updates).eq('id', id);
+      } catch (err) {
+        console.warn('Supabase update tier:', err);
+      }
+    }
   };
 
-  const deleteClientFournisseur = (id) => {
+  const deleteClientFournisseur = async (id) => {
     setClientsFournisseurs(prev => prev.filter(t => t.id !== id));
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from('clients_fournisseurs').delete().eq('id', id);
+      } catch (err) {
+        console.warn('Supabase delete tier:', err);
+      }
+    }
   };
 
   const getClients = () => clientsFournisseurs.filter(t => t.type === 'CLIENT');
@@ -483,64 +553,114 @@ export function ErpDataProvider({ children }) {
   // ==========================================
   // Gestion Agents Commerciaux
   // ==========================================
-  const addAgentCommercial = (agent) => {
+  const addAgentCommercial = async (agent) => {
     const newAgent = {
       ...agent,
-      id: `com-${Date.now()}`,
+      id: agent.id || `com-${Date.now()}`,
       matricule: agent.matricule || `COM-${String(agentsCommerciaux.length + 1).padStart(3, '0')}`,
-      total_ventes: 0,
-      total_commissions_dues: 0,
-      total_commissions_payees: 0,
-      contrats_clos_count: 0,
+      total_ventes: Number(agent.total_ventes) || 0,
+      total_commissions_dues: Number(agent.total_commissions_dues) || 0,
+      total_commissions_payees: Number(agent.total_commissions_payees) || 0,
+      contrats_clos_count: Number(agent.contrats_clos_count) || 0,
       actif: agent.actif !== undefined ? agent.actif : true,
       created_at: new Date().toISOString()
     };
     setAgentsCommerciaux(prev => [newAgent, ...prev]);
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from('agents_commerciaux').upsert([newAgent]);
+      } catch (err) {
+        console.warn('Supabase add commercial:', err);
+      }
+    }
   };
 
-  const updateAgentCommercial = (id, updates) => {
+  const updateAgentCommercial = async (id, updates) => {
     setAgentsCommerciaux(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from('agents_commerciaux').update(updates).eq('id', id);
+      } catch (err) {
+        console.warn('Supabase update commercial:', err);
+      }
+    }
   };
 
-  const deleteAgentCommercial = (id) => {
+  const deleteAgentCommercial = async (id) => {
     setAgentsCommerciaux(prev => prev.filter(a => a.id !== id));
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from('agents_commerciaux').delete().eq('id', id);
+      } catch (err) {
+        console.warn('Supabase delete commercial:', err);
+      }
+    }
   };
 
   // ==========================================
   // Gestion des Commissions
   // ==========================================
-  const addCommission = (comm) => {
+  const addCommission = async (comm) => {
     const newComm = {
       ...comm,
-      id: `comm-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      id: comm.id || `comm-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       created_at: new Date().toISOString()
     };
     setCommissions(prev => [newComm, ...prev]);
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from('commissions').upsert([newComm]);
+      } catch (err) {
+        console.warn('Supabase add commission:', err);
+      }
+    }
   };
 
-  const updateCommission = (id, updates) => {
+  const updateCommission = async (id, updates) => {
     setCommissions(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from('commissions').update(updates).eq('id', id);
+      } catch (err) {
+        console.warn('Supabase update commission:', err);
+      }
+    }
   };
 
-  const deleteCommission = (id) => {
+  const deleteCommission = async (id) => {
     setCommissions(prev => prev.filter(c => c.id !== id));
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from('commissions').delete().eq('id', id);
+      } catch (err) {
+        console.warn('Supabase delete commission:', err);
+      }
+    }
   };
 
   // Action : Régler une commission (Génère automatiquement une sortie de caisse)
-  const payerCommission = (commissionId, modeReglement = 'ESPECES') => {
+  const payerCommission = async (commissionId, modeReglement = 'ESPECES') => {
     const comm = commissions.find(c => c.id === commissionId);
     if (!comm) return;
 
     const mvtId = `mvt-${Date.now()}`;
     const now = new Date().toISOString();
 
-    // 1. Mettre à jour la commission
-    updateCommission(commissionId, {
+    const commUpdates = {
       statut: 'PAYEE',
       date_reglement: now,
       mode_reglement: modeReglement,
       mouvement_caisse_id: mvtId
-    });
+    };
+
+    // 1. Mettre à jour la commission
+    updateCommission(commissionId, commUpdates);
 
     // 2. Générer l'écriture de sortie de caisse
     const newMvt = {
@@ -549,77 +669,142 @@ export function ErpDataProvider({ children }) {
       montant: Number(comm.montant_commission) || 0,
       motif: `Règlement commission ${comm.type} - ${comm.prestation_ref} (${comm.beneficiaire_nom})`,
       categorie: 'COMMISSION',
+      module_code: 'COMMISSIONS',
       beneficiaire_emetteur: comm.beneficiaire_nom,
       tier_type: comm.type === 'APPORTEUR' ? 'PARTENAIRE' : 'AUTRE',
       mode_reglement: modeReglement,
       date: now,
       created_at: now
     };
-    setMouvements(prev => [newMvt, ...prev]);
+    addMouvement(newMvt);
   };
 
   // ==========================================
   // Gestion Interventions de Maintenance
   // ==========================================
-  const addIntervention = (item) => {
+  const addIntervention = async (item) => {
     const newItem = {
       ...item,
-      id: `int-${Date.now()}`,
+      id: item.id || `int-${Date.now()}`,
       created_at: new Date().toISOString(),
       date_intervention: item.date_intervention || new Date().toISOString()
     };
     setInterventions(prev => [newItem, ...prev]);
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from('interventions_maintenance').upsert([newItem]);
+      } catch (err) {
+        console.warn('Supabase add intervention:', err);
+      }
+    }
   };
 
-  const updateIntervention = (id, updates) => {
+  const updateIntervention = async (id, updates) => {
     setInterventions(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from('interventions_maintenance').update(updates).eq('id', id);
+      } catch (err) {
+        console.warn('Supabase update intervention:', err);
+      }
+    }
   };
 
-  const deleteIntervention = (id) => {
+  const deleteIntervention = async (id) => {
     setInterventions(prev => prev.filter(item => item.id !== id));
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from('interventions_maintenance').delete().eq('id', id);
+      } catch (err) {
+        console.warn('Supabase delete intervention:', err);
+      }
+    }
   };
 
   // ==========================================
   // Gestion Articles / Stocks
   // ==========================================
-  const addArticle = (art) => {
+  const addArticle = async (art) => {
     const newArt = {
       ...art,
-      id: `art-${Date.now()}`,
+      id: art.id || `art-${Date.now()}`,
       created_at: new Date().toISOString()
     };
     setArticles(prev => [newArt, ...prev]);
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from('catalogue_articles').upsert([newArt]);
+      } catch (err) {
+        console.warn('Supabase add article:', err);
+      }
+    }
   };
 
-  const updateArticle = (id, updates) => {
+  const updateArticle = async (id, updates) => {
     setArticles(prev => prev.map(art => art.id === id ? { ...art, ...updates } : art));
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from('catalogue_articles').update(updates).eq('id', id);
+      } catch (err) {
+        console.warn('Supabase update article:', err);
+      }
+    }
   };
 
-  const deleteArticle = (id) => {
+  const deleteArticle = async (id) => {
     setArticles(prev => prev.filter(art => art.id !== id));
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from('catalogue_articles').delete().eq('id', id);
+      } catch (err) {
+        console.warn('Supabase delete article:', err);
+      }
+    }
   };
 
   // ==========================================
   // Gestion Mouvements de Caisse
   // ==========================================
-  const addMouvement = (mvt) => {
+  const addMouvement = async (mvt) => {
     const newMvt = {
       ...mvt,
-      id: `mvt-${Date.now()}`,
+      id: mvt.id || `mvt-${Date.now()}`,
       created_at: new Date().toISOString(),
       date: mvt.date || new Date().toISOString()
     };
     setMouvements(prev => [newMvt, ...prev]);
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from('mouvements_caisse').upsert([newMvt]);
+      } catch (err) {
+        console.warn('Supabase add mouvement:', err);
+      }
+    }
   };
 
-  const deleteMouvement = (id) => {
+  const deleteMouvement = async (id) => {
     setMouvements(prev => prev.filter(m => m.id !== id));
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from('mouvements_caisse').delete().eq('id', id);
+      } catch (err) {
+        console.warn('Supabase delete mouvement:', err);
+      }
+    }
   };
 
   // ==========================================
   // Gestion Prestations, Commandes & 11 Colonnes Financières
   // ==========================================
-  const addPrestation = (prest) => {
+  const addPrestation = async (prest) => {
     const qte = Number(prest.quantite) > 0 ? Number(prest.quantite) : 1;
     const coutUnit = prest.cout_unitaire_achat !== undefined 
       ? Number(prest.cout_unitaire_achat) 
@@ -639,7 +824,7 @@ export function ErpDataProvider({ children }) {
       commAppTaux
     );
 
-    const prestId = `prest-${Date.now()}`;
+    const prestId = prest.id || `prest-${Date.now()}`;
     const prestRef = prest.reference || `CMD-${new Date().getFullYear()}-${String(prestations.length + 1).padStart(3, '0')}`;
     const designation = prest.designation || prest.description || '';
 
@@ -723,9 +908,22 @@ export function ErpDataProvider({ children }) {
     if (generatedCommissions.length > 0) {
       setCommissions(prev => [...generatedCommissions, ...prev]);
     }
+
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from('prestations_commandes').upsert([newPrest]);
+        if (generatedCommissions.length > 0) {
+          await supabase.from('commissions').upsert(generatedCommissions);
+        }
+      } catch (err) {
+        console.warn('Supabase add prestation & commissions:', err);
+      }
+    }
   };
 
-  const updatePrestation = (id, updates) => {
+  const updatePrestation = async (id, updates) => {
+    let updatedObj = null;
     setPrestations(prev => prev.map(p => {
       if (p.id === id) {
         const merged = { ...p, ...updates };
@@ -760,15 +958,34 @@ export function ErpDataProvider({ children }) {
         merged.commission_commercial_montant = calc.commissionCommercial;
         merged.benefice_reel = calc.beneficeReel;
         merged.marge_nette = calc.beneficeReel;
+        updatedObj = merged;
         return merged;
       }
       return p;
     }));
+
+    const supabase = getSupabaseClient();
+    if (supabase && updatedObj) {
+      try {
+        await supabase.from('prestations_commandes').update(updatedObj).eq('id', id);
+      } catch (err) {
+        console.warn('Supabase update prestation:', err);
+      }
+    }
   };
 
-  const deletePrestation = (id) => {
+  const deletePrestation = async (id) => {
     setPrestations(prev => prev.filter(p => p.id !== id));
     setCommissions(prev => prev.filter(c => c.prestation_id !== id));
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from('commissions').delete().eq('prestation_id', id);
+        await supabase.from('prestations_commandes').delete().eq('id', id);
+      } catch (err) {
+        console.warn('Supabase delete prestation:', err);
+      }
+    }
   };
 
   const resetAllData = () => {
