@@ -33,6 +33,7 @@ import RemoveIcon from '@mui/icons-material/Remove';
 import StoreIcon from '@mui/icons-material/Store';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
+import SavingsIcon from '@mui/icons-material/Savings';
 
 export default function StocksModule() {
   const { hasModule, articles, clientsFournisseurs, addArticle, updateArticle, deleteArticle } = useErpData();
@@ -194,8 +195,8 @@ export default function StocksModule() {
   return (
     <Box sx={{ pb: 3 }}>
       {/* KPI Info Boxes AdminBSB */}
-      <Grid container spacing={2.5} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
           <BsbInfoBox
             variant="hover-expand"
             color="purple"
@@ -205,7 +206,7 @@ export default function StocksModule() {
             subtitle={`Total : ${stockValuation.totalArticlesEnStock} unités`}
           />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
           <BsbInfoBox
             variant="hover-expand"
             color="blue"
@@ -215,17 +216,31 @@ export default function StocksModule() {
             subtitle="Capital immobilisé"
           />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
           <BsbInfoBox
             variant="hover-expand"
             color="teal"
             icon={<TrendingUpIcon />}
             title="VALEUR VENTE"
             number={formatCurrency(stockValuation.valeurVenteTotale)}
-            subtitle={`Marge pot. : ${formatCurrency(stockValuation.margePotentielle)}`}
+            subtitle="Chiffre d'affaires estimé"
           />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
+          <BsbInfoBox
+            variant="hover-expand"
+            color="green"
+            icon={<SavingsIcon />}
+            title="MARGE POTENTIELLE"
+            number={formatCurrency(stockValuation.margePotentielle)}
+            subtitle={
+              stockValuation.valeurAchatTotale > 0
+                ? `Rendement : +${((stockValuation.margePotentielle / stockValuation.valeurAchatTotale) * 100).toFixed(1)}%`
+                : 'Vente - Achat'
+            }
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2.4 }}>
           <BsbInfoBox
             variant="hover-zoom"
             color={stockValuation.nombreAlertes > 0 ? 'red' : 'blue-grey'}
