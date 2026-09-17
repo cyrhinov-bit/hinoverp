@@ -286,7 +286,7 @@ export function ErpDataProvider({ children }) {
       id: `um-${Date.now()}-${idx}`,
       user_id: userId,
       module_id: mod.id,
-      is_enabled: isRoleAdmin ? true : enabledModuleCodes.includes(mod.code_module) || mod.code_module === 'CAISSE_DEPENSES',
+      is_enabled: isRoleAdmin ? true : enabledModuleCodes.includes(mod.code_module),
       updated_at: new Date().toISOString()
     }));
 
@@ -335,7 +335,7 @@ export function ErpDataProvider({ children }) {
       id: `um-${Date.now()}-${idx}`,
       user_id: newUserId,
       module_id: mod.id,
-      is_enabled: newUserData.role === 'ADMIN' ? true : enabledModuleCodes.includes(mod.code_module) || mod.code_module === 'CAISSE_DEPENSES',
+      is_enabled: newUserData.role === 'ADMIN' ? true : enabledModuleCodes.includes(mod.code_module),
       updated_at: new Date().toISOString()
     }));
 

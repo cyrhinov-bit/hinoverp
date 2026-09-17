@@ -18,21 +18,17 @@ export function canAccessModule(
     return true;
   }
 
-  // 2. Le module Dépenses & Caisse est accessible à tous les utilisateurs (gestion cloisonnée par service)
-  if (moduleCode === 'CAISSE_DEPENSES') {
-    return true;
-  }
-
-  // 3. Trouver l'ID du module correspondant au code
-  const targetModule = allModules.find(m => m.code_module === moduleCode);
+  // 2. Trouver l'ID du module correspondant au code
+  const targetModule = allModules.find(m => m.code_module === moduleCode || m.id === moduleCode);
   const moduleId = targetModule ? targetModule.id : moduleCode;
+  const canonicalCode = targetModule ? targetModule.code_module : moduleCode;
 
-  // 4. Vérifier dans la table de liaison user_modules
+  // 3. Vérifier dans la table de liaison user_modules
   const userModuleLink = userModules.find(
     um => um.user_id === user.id && (
       um.module_id === moduleId || 
-      (targetModule && um.module_id === targetModule.id) ||
-      um.module_id === moduleCode
+      um.module_id === canonicalCode ||
+      (targetModule && (um.module_id === targetModule.id || um.module_id === targetModule.code_module))
     )
   );
 
@@ -51,7 +47,6 @@ export function getAuthorizedModules(
   if (user.role === 'ADMIN') return allModules;
 
   return allModules.filter(module => {
-    if (module.code_module === 'CAISSE_DEPENSES') return true;
     const link = userModules.find(
       um => um.user_id === user.id && (um.module_id === module.id || um.module_id === module.code_module)
     );
