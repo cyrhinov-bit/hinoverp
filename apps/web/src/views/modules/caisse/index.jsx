@@ -23,7 +23,7 @@ import {
 
 import { useAuth } from 'context/AuthContext';
 import { useErpData } from 'context/ErpDataContext';
-import { calculateCashFlowStats, formatCurrency } from '@hinov/core';
+import { calculateCashFlowStats, formatCurrency, filterTiersForUser } from '@hinov/core';
 
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import AddIcon from '@mui/icons-material/Add';
@@ -59,9 +59,8 @@ export default function CaisseModule() {
   const canCaisse = isAdmin || hasModule('CAISSE_DEPENSES');
 
   const userScopedClientsFournisseurs = useMemo(() => {
-    if (isAdmin) return clientsFournisseurs;
-    return clientsFournisseurs.filter((t) => t.cree_par === currentUser?.id);
-  }, [clientsFournisseurs, isAdmin, currentUser]);
+    return filterTiersForUser(clientsFournisseurs, currentUser);
+  }, [clientsFournisseurs, currentUser]);
 
   const clients = useMemo(() => userScopedClientsFournisseurs.filter((t) => t.type === 'CLIENT'), [userScopedClientsFournisseurs]);
   const fournisseurs = useMemo(() => userScopedClientsFournisseurs.filter((t) => t.type === 'FOURNISSEUR'), [userScopedClientsFournisseurs]);

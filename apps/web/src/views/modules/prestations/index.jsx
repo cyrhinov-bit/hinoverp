@@ -21,7 +21,7 @@ import {
 
 import { useAuth } from 'context/AuthContext';
 import { useErpData } from 'context/ErpDataContext';
-import { calculatePrestationsStats, calculatePrestationLine, formatCurrency } from '@hinov/core';
+import { calculatePrestationsStats, calculatePrestationLine, formatCurrency, filterTiersForUser } from '@hinov/core';
 
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import AddIcon from '@mui/icons-material/Add';
@@ -51,9 +51,8 @@ export default function PrestationsModule() {
   const [statusFilter, setStatusFilter] = useState('ALL');
 
   const userScopedClientsFournisseurs = useMemo(() => {
-    if (isAdmin) return clientsFournisseurs;
-    return clientsFournisseurs.filter((t) => t.cree_par === currentUser?.id);
-  }, [clientsFournisseurs, isAdmin, currentUser]);
+    return filterTiersForUser(clientsFournisseurs, currentUser);
+  }, [clientsFournisseurs, currentUser]);
 
   const clients = useMemo(() => userScopedClientsFournisseurs.filter((t) => t.type === 'CLIENT'), [userScopedClientsFournisseurs]);
   const partenairesApporteurs = useMemo(() => userScopedClientsFournisseurs.filter((t) => t.type === 'PARTENAIRE' || t.type === 'CLIENT'), [userScopedClientsFournisseurs]);

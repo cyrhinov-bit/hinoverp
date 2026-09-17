@@ -22,7 +22,7 @@ import {
 
 import { useAuth } from 'context/AuthContext';
 import { useErpData } from 'context/ErpDataContext';
-import { calculateStockValuation, formatCurrency } from '@hinov/core';
+import { calculateStockValuation, formatCurrency, filterTiersForUser } from '@hinov/core';
 
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import AddIcon from '@mui/icons-material/Add';
@@ -48,9 +48,8 @@ export default function StocksModule() {
   const [deleteConfirmArt, setDeleteConfirmArt] = useState(null);
 
   const userScopedClientsFournisseurs = useMemo(() => {
-    if (isAdmin) return clientsFournisseurs;
-    return clientsFournisseurs.filter((t) => t.cree_par === currentUser?.id);
-  }, [clientsFournisseurs, isAdmin, currentUser]);
+    return filterTiersForUser(clientsFournisseurs, currentUser);
+  }, [clientsFournisseurs, currentUser]);
 
   const fournisseurs = useMemo(() => userScopedClientsFournisseurs.filter((t) => t.type === 'FOURNISSEUR'), [userScopedClientsFournisseurs]);
 

@@ -22,7 +22,7 @@ import {
 
 import { useAuth } from 'context/AuthContext';
 import { useErpData } from 'context/ErpDataContext';
-import { calculateMaintenanceStats, formatCurrency } from '@hinov/core';
+import { calculateMaintenanceStats, formatCurrency, filterTiersForUser } from '@hinov/core';
 
 import BuildIcon from '@mui/icons-material/Build';
 import AddIcon from '@mui/icons-material/Add';
@@ -50,9 +50,8 @@ export default function MaintenanceModule() {
   const [confirmModal, setConfirmModal] = useState(null);
 
   const userScopedClientsFournisseurs = useMemo(() => {
-    if (isAdmin) return clientsFournisseurs;
-    return clientsFournisseurs.filter((t) => t.cree_par === currentUser?.id);
-  }, [clientsFournisseurs, isAdmin, currentUser]);
+    return filterTiersForUser(clientsFournisseurs, currentUser);
+  }, [clientsFournisseurs, currentUser]);
 
   const clients = useMemo(() => userScopedClientsFournisseurs.filter((t) => t.type === 'CLIENT'), [userScopedClientsFournisseurs]);
 

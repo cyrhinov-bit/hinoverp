@@ -137,8 +137,8 @@ export const INITIAL_CLIENTS_FOURNISSEURS: ClientFournisseur[] = [
     email: 'logistique@ivoirepalace.com',
     adresse: 'Cocody Boulevard Hassan II',
     ville: 'Abidjan',
-    cree_par: 'usr-admin-1',
-    cree_par_nom: 'Evariste Gnonskan'
+    cree_par: 'usr-staff-2',
+    cree_par_nom: 'A. Bosso'
   },
   {
     id: 'a1111111-0000-0000-0000-000000000003',
@@ -148,8 +148,8 @@ export const INITIAL_CLIENTS_FOURNISSEURS: ClientFournisseur[] = [
     email: 'commandes@africdistrib.ci',
     adresse: 'Zone Industrielle Yopougon',
     ville: 'Abidjan',
-    cree_par: 'usr-admin-1',
-    cree_par_nom: 'Evariste Gnonskan'
+    cree_par: 'usr-staff-2',
+    cree_par_nom: 'A. Bosso'
   },
   {
     id: 'a1111111-0000-0000-0000-000000000004',
@@ -170,8 +170,8 @@ export const INITIAL_CLIENTS_FOURNISSEURS: ClientFournisseur[] = [
     email: 'direction@inovtech-ci.com',
     adresse: 'Deux Plateaux Vallon',
     ville: 'Abidjan',
-    cree_par: 'usr-admin-1',
-    cree_par_nom: 'Evariste Gnonskan'
+    cree_par: 'usr-staff-2',
+    cree_par_nom: 'A. Bosso'
   }
 ];
 

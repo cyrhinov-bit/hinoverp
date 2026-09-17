@@ -54,3 +54,51 @@ export function getAuthorizedModules(
   });
 }
 
+/**
+ * Vérifie si un utilisateur a accès à un tiers (client/fournisseur/partenaire)
+ * Règles :
+ * 1. L'administrateur a une vue universelle sur tous les tiers de l'entreprise.
+ * 2. Un utilisateur standard a accès aux tiers :
+ *    - Qu'il a créés (par ID, email ou nom)
+ *    - Qui sont des tiers historiques/partagés (sans créateur exclusif assigné)
+ */
+export function canAccessTier(
+  user: { id?: string; email?: string; nom?: string; role?: string } | null | undefined,
+  tier: { id?: string; cree_par?: string; cree_par_nom?: string } | null | undefined
+): boolean {
+  if (!tier) return false;
+  if (!user) return true;
+  if (user.role === 'ADMIN') return true;
+
+  // Créé par l'utilisateur (par ID ou email)
+  if (tier.cree_par) {
+    if (tier.cree_par === user.id) return true;
+    if (user.email && tier.cree_par.toLowerCase() === user.email.toLowerCase()) return true;
+    if (tier.cree_par === 'all' || tier.cree_par === 'PUBLIC') return true;
+  }
+
+  // Créé par l'utilisateur (par nom de créateur)
+  if (tier.cree_par_nom && user.nom) {
+    if (tier.cree_par_nom.trim().toLowerCase() === user.nom.trim().toLowerCase()) return true;
+  }
+
+  // Tiers existants/historiques sans créateur exclusif tiers
+  if (!tier.cree_par && !tier.cree_par_nom) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Filtre la liste des tiers (clients/fournisseurs) pour un utilisateur
+ */
+export function filterTiersForUser<T extends { id?: string; cree_par?: string; cree_par_nom?: string }>(
+  tiers: T[] = [],
+  user: { id?: string; email?: string; nom?: string; role?: string } | null | undefined
+): T[] {
+  if (!user || user.role === 'ADMIN') return tiers;
+  return tiers.filter(t => canAccessTier(user, t));
+}
+
+

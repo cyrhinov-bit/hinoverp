@@ -26,7 +26,7 @@ import {
 
 import { useAuth } from 'context/AuthContext';
 import { useErpData } from 'context/ErpDataContext';
-import { formatCurrency, calculateThirdPartyStats } from '@hinov/core';
+import { formatCurrency, calculateThirdPartyStats, filterTiersForUser } from '@hinov/core';
 
 import PeopleIcon from '@mui/icons-material/People';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
@@ -77,9 +77,8 @@ export default function TiersManager() {
 
   // Cloisonnement : Chaque utilisateur ne voit que ses clients/fournisseurs. Seul l'admin a une vue globale.
   const userScopedClientsFournisseurs = useMemo(() => {
-    if (isAdmin) return clientsFournisseurs;
-    return clientsFournisseurs.filter((t) => t.cree_par === currentUser?.id);
-  }, [clientsFournisseurs, isAdmin, currentUser]);
+    return filterTiersForUser(clientsFournisseurs, currentUser);
+  }, [clientsFournisseurs, currentUser]);
 
   // Analytics calculés sur le périmètre autorisé
   const stats = useMemo(() => {

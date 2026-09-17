@@ -20,7 +20,8 @@ import {
   calculateThirdPartyStats,
   calculateCommissionsStats,
   calculateCommercialsStats,
-  formatCurrency 
+  formatCurrency,
+  filterTiersForUser
 } from '@hinov/core';
 
 import BuildIcon from '@mui/icons-material/Build';
@@ -75,9 +76,8 @@ export default function DashboardDefault() {
 
   // Tiers (Clients & Fournisseurs) cloisonnés selon le profil
   const userScopedClientsFournisseurs = useMemo(() => {
-    if (isAdmin) return clientsFournisseurs;
-    return clientsFournisseurs.filter((t) => t.cree_par === currentUser?.id);
-  }, [clientsFournisseurs, isAdmin, currentUser]);
+    return filterTiersForUser(clientsFournisseurs, currentUser);
+  }, [clientsFournisseurs, currentUser]);
 
   // Calculs transversaux
   const cashBalance = calculateCashBalance(userScopedMouvements);
