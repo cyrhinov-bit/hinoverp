@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 -- 2. TABLE : MODULES (Liste des modules configurables dans l'ERP)
 CREATE TABLE IF NOT EXISTS public.modules (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    code_module TEXT UNIQUE NOT NULL CHECK (code_module IN ('MAINTENANCE', 'STOCKS', 'CAISSE_DEPENSES', 'PRESTATIONS', 'CLIENTS_FOURNISSEURS')),
+    code_module TEXT UNIQUE NOT NULL CHECK (code_module IN ('MAINTENANCE', 'STOCKS', 'CAISSE_DEPENSES', 'PRESTATIONS', 'CLIENTS_FOURNISSEURS', 'COMMERCIAUX', 'COMMISSIONS')),
     nom TEXT NOT NULL,
     description TEXT,
     icone TEXT,
@@ -114,6 +114,44 @@ CREATE TABLE IF NOT EXISTS public.prestations_commandes (
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
+-- 9. TABLE : AGENTS_COMMERCIAUX (Force de vente)
+CREATE TABLE IF NOT EXISTS public.agents_commerciaux (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    matricule TEXT UNIQUE,
+    nom TEXT NOT NULL,
+    prenom TEXT,
+    telephone TEXT NOT NULL,
+    email TEXT,
+    zone_secteur TEXT,
+    taux_commission_defaut NUMERIC(5, 2) DEFAULT 5.00,
+    actif BOOLEAN NOT NULL DEFAULT true,
+    total_ventes NUMERIC(12, 2) DEFAULT 0,
+    total_commissions_dues NUMERIC(12, 2) DEFAULT 0,
+    total_commissions_payees NUMERIC(12, 2) DEFAULT 0,
+    contrats_clos_count INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- 10. TABLE : COMMISSIONS (Apporteurs, Agents et Responsables)
+CREATE TABLE IF NOT EXISTS public.commissions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    prestation_id UUID REFERENCES public.prestations_commandes(id) ON DELETE CASCADE,
+    prestation_ref TEXT NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('APPORTEUR', 'AGENT_COMMERCIAL', 'RESPONSABLE')),
+    beneficiaire_id UUID,
+    beneficiaire_nom TEXT NOT NULL,
+    beneficiaire_contact TEXT,
+    montant_prestation NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    taux_pourcentage NUMERIC(5, 2) DEFAULT 10.00,
+    montant_commission NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    statut TEXT NOT NULL DEFAULT 'A_VALIDER' CHECK (statut IN ('A_VALIDER', 'A_PAYER', 'PAYEE', 'ANNULEE')),
+    date_reglement TIMESTAMPTZ,
+    mode_reglement TEXT CHECK (mode_reglement IN ('ESPECES', 'CHEQUE', 'VIREMENT', 'MOBILE_MONEY')),
+    mouvement_caisse_id UUID REFERENCES public.mouvements_caisse(id) ON DELETE SET NULL,
+    note TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
 -- ====================================================================
 -- TRIGGERS AUTOMATIQUES
 -- ====================================================================
@@ -170,6 +208,8 @@ ALTER TABLE public.catalogue_articles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.interventions_maintenance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mouvements_caisse ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.prestations_commandes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.agents_commerciaux ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.commissions ENABLE ROW LEVEL SECURITY;
 
 -- Politiques de lecture et écriture ouvertes aux utilisateurs authentifiés
 CREATE POLICY "Profiles lecture pour authentifiés" ON public.profiles FOR SELECT TO authenticated USING (true);
@@ -193,3 +233,6 @@ CREATE POLICY "Catalogue Articles tout accès" ON public.catalogue_articles FOR 
 CREATE POLICY "Interventions tout accès" ON public.interventions_maintenance FOR ALL TO authenticated USING (true);
 CREATE POLICY "Mouvements Caisse tout accès" ON public.mouvements_caisse FOR ALL TO authenticated USING (true);
 CREATE POLICY "Prestations tout accès" ON public.prestations_commandes FOR ALL TO authenticated USING (true);
+CREATE POLICY "Agents Commerciaux tout accès" ON public.agents_commerciaux FOR ALL TO authenticated USING (true);
+CREATE POLICY "Commissions tout accès" ON public.commissions FOR ALL TO authenticated USING (true);
+

@@ -9,7 +9,9 @@ VALUES
     ('22222222-2222-2222-2222-222222222222', 'STOCKS', 'Stocks & Consommables', 'Inventaire, suivi des articles, quantités et alertes de réapprovisionnement', 'InventoryTwoTone', 2),
     ('33333333-3333-3333-3333-333333333333', 'CAISSE_DEPENSES', 'Dépenses & Caisse', 'Journal de trésorerie, suivi des entrées et sorties en temps réel', 'AccountBalanceWalletTwoTone', 3),
     ('44444444-4444-4444-4444-444444444444', 'PRESTATIONS', 'Prestations & Commandes', 'Suivi des devis, commandes clients et calcul automatisé des marges', 'ReceiptTwoTone', 4),
-    ('55555555-5555-5555-5555-555555555555', 'CLIENTS_FOURNISSEURS', 'Clients & Fournisseurs', 'Répertoire centralisé des tiers, contacts, coordonnées et historique croisé', 'PeopleAltTwoTone', 5)
+    ('55555555-5555-5555-5555-555555555555', 'CLIENTS_FOURNISSEURS', 'Clients & Fournisseurs', 'Répertoire centralisé des tiers, contacts, coordonnées et historique croisé', 'PeopleAltTwoTone', 5),
+    ('66666666-6666-6666-6666-666666666666', 'COMMERCIAUX', 'Agents Commerciaux', 'Gestion des agents commerciaux, portefeuille d''affaires et performances', 'BadgeTwoTone', 6),
+    ('77777777-7777-7777-7777-777777777777', 'COMMISSIONS', 'Gestion des Commissions', 'Suivi, validation et liquidation des commissions apporteurs et agents', 'MonetizationOnTwoTone', 7)
 ON CONFLICT (code_module) DO UPDATE 
 SET nom = EXCLUDED.nom, description = EXCLUDED.description, icone = EXCLUDED.icone, ordre = EXCLUDED.ordre;
 

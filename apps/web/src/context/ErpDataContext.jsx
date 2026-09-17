@@ -186,6 +186,60 @@ export function ErpDataProvider({ children }) {
     localStorage.setItem('hinov_prod_admin_v2', 'true');
   }, []);
 
+  // Synchronisation descendante au chargement si Supabase est configuré
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+
+    let isMounted = true;
+    async function hydrateFromSupabase() {
+      try {
+        const [profRes, modRes, umRes] = await Promise.all([
+          supabase.from('profiles').select('*'),
+          supabase.from('modules').select('*'),
+          supabase.from('user_modules').select('*')
+        ]);
+
+        if (!isMounted) return;
+
+        if (profRes.data && profRes.data.length > 0) {
+          setProfiles((prev) => {
+            const map = new Map();
+            profRes.data.forEach((p) => map.set(p.id, p));
+            prev.forEach((p) => {
+              if (!map.has(p.id)) map.set(p.id, p);
+            });
+            return Array.from(map.values());
+          });
+        }
+
+        if (modRes.data && modRes.data.length > 0) {
+          setModules(modRes.data);
+        }
+
+        if (umRes.data && umRes.data.length > 0) {
+          setUserModules((prev) => {
+            const map = new Map();
+            umRes.data.forEach((um) => map.set(`${um.user_id}_${um.module_id}`, um));
+            prev.forEach((um) => {
+              const key = `${um.user_id}_${um.module_id}`;
+              if (!map.has(key)) map.set(key, um);
+            });
+            return Array.from(map.values());
+          });
+        }
+      } catch (err) {
+        console.warn('Supabase hydration error:', err);
+      }
+    }
+
+    hydrateFromSupabase();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // Sauvegarde automatique dans localStorage
   useEffect(() => {
     localStorage.setItem('hinov_profiles', JSON.stringify(profiles));
@@ -227,26 +281,42 @@ export function ErpDataProvider({ children }) {
   };
 
   // Mise à jour globale des modules d'un utilisateur (utilisé lors de l'édition d'un utilisateur)
-  const setUserModulesForUser = (userId, enabledModuleCodes = [], isRoleAdmin = false) => {
+  const setUserModulesForUser = async (userId, enabledModuleCodes = [], isRoleAdmin = false) => {
+    const newLinks = modules.map((mod, idx) => ({
+      id: `um-${Date.now()}-${idx}`,
+      user_id: userId,
+      module_id: mod.id,
+      is_enabled: isRoleAdmin ? true : enabledModuleCodes.includes(mod.code_module) || mod.code_module === 'CAISSE_DEPENSES',
+      updated_at: new Date().toISOString()
+    }));
+
     setUserModules((prev) => {
       const otherLinks = prev.filter((um) => um.user_id !== userId);
-      const newLinks = modules.map((mod, idx) => ({
-        id: `um-${Date.now()}-${idx}`,
-        user_id: userId,
-        module_id: mod.id,
-        is_enabled: isRoleAdmin ? true : enabledModuleCodes.includes(mod.code_module) || mod.code_module === 'CAISSE_DEPENSES',
-        updated_at: new Date().toISOString()
-      }));
       const updated = [...otherLinks, ...newLinks];
       localStorage.setItem('hinov_user_modules', JSON.stringify(updated));
       return updated;
     });
+
+    // Synchronisation Supabase de l'ensemble des modules de l'utilisateur
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase
+          .from('user_modules')
+          .upsert(
+            newLinks.map(l => ({ user_id: l.user_id, module_id: l.module_id, is_enabled: l.is_enabled })),
+            { onConflict: 'user_id,module_id' }
+          );
+      } catch (err) {
+        console.warn('Supabase batch user_modules sync failed:', err);
+      }
+    }
   };
 
   // ==========================================
   // Gestion des Utilisateurs / Profils (Admin)
   // ==========================================
-  const addProfile = (newUserData, enabledModuleCodes = []) => {
+  const addProfile = async (newUserData, enabledModuleCodes = []) => {
     const newUserId = `usr-${Date.now()}`;
     const cleanEmail = (newUserData.email || '').trim().toLowerCase();
     const newProfile = {
@@ -265,7 +335,8 @@ export function ErpDataProvider({ children }) {
       id: `um-${Date.now()}-${idx}`,
       user_id: newUserId,
       module_id: mod.id,
-      is_enabled: newUserData.role === 'ADMIN' ? true : enabledModuleCodes.includes(mod.code_module) || mod.code_module === 'CAISSE_DEPENSES'
+      is_enabled: newUserData.role === 'ADMIN' ? true : enabledModuleCodes.includes(mod.code_module) || mod.code_module === 'CAISSE_DEPENSES',
+      updated_at: new Date().toISOString()
     }));
 
     setProfiles(prev => {
@@ -282,13 +353,21 @@ export function ErpDataProvider({ children }) {
     // Synchronisation Supabase si connecté
     const supabase = getSupabaseClient();
     if (supabase) {
-      supabase.from('profiles').upsert([newProfile]).catch(err => console.warn('Supabase sync profile:', err));
+      try {
+        await supabase.from('profiles').upsert([newProfile]);
+        await supabase.from('user_modules').upsert(
+          newUserModulesLinks.map(l => ({ user_id: l.user_id, module_id: l.module_id, is_enabled: l.is_enabled })),
+          { onConflict: 'user_id,module_id' }
+        );
+      } catch (err) {
+        console.warn('Supabase sync profile & user_modules:', err);
+      }
     }
 
     return newProfile;
   };
 
-  const updateProfile = (id, updates) => {
+  const updateProfile = async (id, updates) => {
     setProfiles(prev => {
       const updated = prev.map(p => p.id === id ? { ...p, ...updates, updated_at: new Date().toISOString() } : p);
       localStorage.setItem('hinov_profiles', JSON.stringify(updated));
@@ -297,9 +376,17 @@ export function ErpDataProvider({ children }) {
     if (currentUser?.id === id && updateCurrentUser) {
       updateCurrentUser(updates);
     }
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from('profiles').update(updates).eq('id', id);
+      } catch (err) {
+        console.warn('Supabase update profile:', err);
+      }
+    }
   };
 
-  const resetUserPassword = (id, newPassword) => {
+  const resetUserPassword = async (id, newPassword) => {
     setProfiles(prev => {
       const updated = prev.map(p => p.id === id ? { ...p, password: newPassword, updated_at: new Date().toISOString() } : p);
       localStorage.setItem('hinov_profiles', JSON.stringify(updated));
@@ -308,9 +395,17 @@ export function ErpDataProvider({ children }) {
     if (currentUser?.id === id && updateCurrentUser) {
       updateCurrentUser({ password: newPassword });
     }
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from('profiles').update({ password: newPassword }).eq('id', id);
+      } catch (err) {
+        console.warn('Supabase reset password:', err);
+      }
+    }
   };
 
-  const deleteProfile = (id) => {
+  const deleteProfile = async (id) => {
     setProfiles(prev => {
       const updated = prev.filter(p => p.id !== id);
       localStorage.setItem('hinov_profiles', JSON.stringify(updated));
@@ -321,14 +416,38 @@ export function ErpDataProvider({ children }) {
       localStorage.setItem('hinov_user_modules', JSON.stringify(updated));
       return updated;
     });
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from('user_modules').delete().eq('user_id', id);
+        await supabase.from('profiles').delete().eq('id', id);
+      } catch (err) {
+        console.warn('Supabase delete profile:', err);
+      }
+    }
   };
 
-  const toggleUserStatus = (id) => {
+  const toggleUserStatus = async (id) => {
+    let nextActif = true;
     setProfiles(prev => {
-      const updated = prev.map(p => p.id === id ? { ...p, actif: !p.actif } : p);
+      const updated = prev.map(p => {
+        if (p.id === id) {
+          nextActif = !p.actif;
+          return { ...p, actif: nextActif };
+        }
+        return p;
+      });
       localStorage.setItem('hinov_profiles', JSON.stringify(updated));
       return updated;
     });
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase.from('profiles').update({ actif: nextActif }).eq('id', id);
+      } catch (err) {
+        console.warn('Supabase toggle status:', err);
+      }
+    }
   };
 
   // ==========================================
