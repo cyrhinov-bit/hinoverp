@@ -235,7 +235,62 @@ export const INITIAL_ARTICLES: CatalogueArticle[] = [
 
 export const INITIAL_AGENTS_COMMERCIAUX: AgentCommercial[] = [];
 export const INITIAL_PRESTATIONS: PrestationCommande[] = [];
+export const INITIAL_INTERVENTIONS: InterventionMaintenance[] = [
+  {
+    id: 'c1111111-0000-0000-0000-000000000001',
+    client_id: 'a1111111-0000-0000-0000-000000000001',
+    client_nom: 'Société Générale de Banque',
+    site_agence: 'Agence Centrale Plateau',
+    utilisateur_concerne: 'Mme Kouassi (Chef d\'agence)',
+    equipement: 'Climatiseur Split 24000 BTU',
+    observation: 'Fuite de gaz réfrigérant et arrêt complet du compresseur',
+    travaux: 'Recharge fluide R410A, remplacement raccord et test étanchéité',
+    quantite: 1,
+    prix_unitaire: 85000,
+    prix: 85000,
+    statut: 'EN_COURS',
+    priorite: 'HAUTE',
+    technicien_assigne: 'Koffi Paul (Tech Froid)',
+    date_intervention: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    id: 'c1111111-0000-0000-0000-000000000002',
+    client_id: 'a1111111-0000-0000-0000-000000000002',
+    client_nom: 'Hôtel Ivoire Palace',
+    site_agence: 'Site Principal Cocody',
+    utilisateur_concerne: 'Direction Générale',
+    equipement: 'Serveur Baie de Brassage & Onduleur',
+    observation: 'Micro-coupures répétées lors des variations réseau',
+    travaux: 'Remplacement batteries onduleur et rééquilibrage de phase',
+    quantite: 1,
+    prix_unitaire: 145000,
+    prix: 145000,
+    statut: 'EN_ATTENTE',
+    priorite: 'URGENTE',
+    technicien_assigne: 'Yao Marc (Tech Réseau)',
+    date_intervention: new Date().toISOString()
+  },
+  {
+    id: 'c1111111-0000-0000-0000-000000000003',
+    client_id: 'a1111111-0000-0000-0000-000000000001',
+    client_nom: 'Société Générale de Banque',
+    site_agence: 'Agence Yopougon',
+    utilisateur_concerne: 'Service Caisse',
+    equipement: 'Imprimante Réseau HP LaserJet Pro',
+    observation: 'Bourrage papier systématique bac 2',
+    travaux: 'Changement galets d\'entraînement et dépoussiérage optique',
+    quantite: 1,
+    prix_unitaire: 35000,
+    prix: 35000,
+    statut: 'TERMINEE',
+    priorite: 'MOYENNE',
+    technicien_assigne: 'Touré Ibrahim',
+    date_intervention: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+  }
+];
+
 export const INITIAL_COMMISSIONS: CommissionItem[] = [];
-export const INITIAL_INTERVENTIONS: InterventionMaintenance[] = [];
 export const INITIAL_MOUVEMENTS: MouvementCaisse[] = [];
+
+
 

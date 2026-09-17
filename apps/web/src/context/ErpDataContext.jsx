@@ -146,8 +146,16 @@ export function ErpDataProvider({ children }) {
   });
 
   const [interventions, setInterventions] = useState(() => {
-    const s = localStorage.getItem('hinov_interventions');
-    return s ? JSON.parse(s) : INITIAL_INTERVENTIONS;
+    try {
+      const s = localStorage.getItem('hinov_interventions');
+      if (s) {
+        const parsed = JSON.parse(s);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Erreur lecture interventions localStorage:', e);
+    }
+    return INITIAL_INTERVENTIONS;
   });
 
   const [mouvements, setMouvements] = useState(() => {

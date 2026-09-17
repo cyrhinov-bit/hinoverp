@@ -25,6 +25,8 @@ import { calculateMaintenanceStats, formatCurrency } from '@hinov/core';
 
 import BuildIcon from '@mui/icons-material/Build';
 import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import EventIcon from '@mui/icons-material/Event';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
@@ -38,6 +40,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 export default function MaintenanceModule() {
   const { hasModule, interventions, clientsFournisseurs, addIntervention, updateIntervention, deleteIntervention } = useErpData();
   const [openModal, setOpenModal] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [clientFilter, setClientFilter] = useState('ALL');
 
@@ -46,7 +49,7 @@ export default function MaintenanceModule() {
 
   const clients = useMemo(() => clientsFournisseurs.filter((t) => t.type === 'CLIENT'), [clientsFournisseurs]);
 
-  // Formulaire d'ajout
+  // Formulaire d'ajout / modification
   const [formData, setFormData] = useState({
     client_id: '',
     client_nom: '',
@@ -58,7 +61,8 @@ export default function MaintenanceModule() {
     quantite: 1,
     prix_unitaire: '',
     priorite: 'MOYENNE',
-    technicien_assigne: ''
+    technicien_assigne: '',
+    date_intervention: new Date().toISOString().split('T')[0]
   });
 
   // Calcul automatique du coût total pour le formulaire
@@ -105,22 +109,8 @@ export default function MaintenanceModule() {
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!formData.site_agence || !formData.equipement) return;
-
-    const qty = Number(formData.quantite) || 1;
-    const unitPrice = Number(formData.prix_unitaire) || 0;
-    const totalCost = qty * unitPrice;
-
-    addIntervention({
-      ...formData,
-      quantite: qty,
-      prix_unitaire: unitPrice,
-      prix: totalCost,
-      statut: 'EN_ATTENTE'
-    });
-
+  const handleOpenCreate = () => {
+    setEditingItem(null);
     setFormData({
       client_id: '',
       client_nom: '',
@@ -132,7 +122,74 @@ export default function MaintenanceModule() {
       quantite: 1,
       prix_unitaire: '',
       priorite: 'MOYENNE',
-      technicien_assigne: ''
+      technicien_assigne: '',
+      date_intervention: new Date().toISOString().split('T')[0]
+    });
+    setOpenModal(true);
+  };
+
+  const handleOpenEdit = (item) => {
+    setEditingItem(item);
+    const dateVal = item.date_intervention 
+      ? (item.date_intervention.includes('T') ? item.date_intervention.split('T')[0] : item.date_intervention)
+      : new Date().toISOString().split('T')[0];
+    setFormData({
+      client_id: item.client_id || '',
+      client_nom: item.client_nom || '',
+      site_agence: item.site_agence || '',
+      utilisateur_concerne: item.utilisateur_concerne || '',
+      equipement: item.equipement || '',
+      observation: item.observation || '',
+      travaux: item.travaux || '',
+      quantite: item.quantite || 1,
+      prix_unitaire: item.prix_unitaire !== undefined ? String(item.prix_unitaire) : (item.prix && item.quantite ? String(item.prix / item.quantite) : ''),
+      priorite: item.priorite || 'MOYENNE',
+      technicien_assigne: item.technicien_assigne || '',
+      date_intervention: dateVal
+    });
+    setOpenModal(true);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!formData.site_agence || !formData.equipement) return;
+
+    const qty = Number(formData.quantite) || 1;
+    const unitPrice = Number(formData.prix_unitaire) || 0;
+    const totalCost = qty * unitPrice;
+    const isoDate = formData.date_intervention ? new Date(formData.date_intervention).toISOString() : new Date().toISOString();
+
+    const payload = {
+      ...formData,
+      quantite: qty,
+      prix_unitaire: unitPrice,
+      prix: totalCost,
+      date_intervention: isoDate
+    };
+
+    if (editingItem) {
+      updateIntervention(editingItem.id, payload);
+    } else {
+      addIntervention({
+        ...payload,
+        statut: 'EN_ATTENTE'
+      });
+    }
+
+    setEditingItem(null);
+    setFormData({
+      client_id: '',
+      client_nom: '',
+      site_agence: '',
+      utilisateur_concerne: '',
+      equipement: '',
+      observation: '',
+      travaux: '',
+      quantite: 1,
+      prix_unitaire: '',
+      priorite: 'MOYENNE',
+      technicien_assigne: '',
+      date_intervention: new Date().toISOString().split('T')[0]
     });
     setOpenModal(false);
   };
@@ -228,7 +285,7 @@ export default function MaintenanceModule() {
             color="primary"
             size="sm"
             startIcon={<AddIcon />}
-            onClick={() => setOpenModal(true)}
+            onClick={handleOpenCreate}
           >
             Nouvelle Intervention
           </BsbButton>
@@ -276,6 +333,22 @@ export default function MaintenanceModule() {
         {/* Table AdminBSB */}
         <BsbDataTable
           columns={[
+            {
+              id: 'date_intervention',
+              label: 'Date Intervention',
+              render: (row) => {
+                const d = row.date_intervention || row.created_at;
+                const formatted = d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
+                return (
+                  <Stack direction="row" spacing={0.6} alignItems="center">
+                    <EventIcon sx={{ fontSize: 16, color: '#009688' }} />
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#333', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                      {formatted}
+                    </Typography>
+                  </Stack>
+                );
+              }
+            },
             {
               id: 'client_site',
               label: 'Client / Site & Agence',
@@ -392,12 +465,12 @@ export default function MaintenanceModule() {
               label: 'Actions',
               align: 'center',
               render: (row) => (
-                <Stack direction="row" spacing={0.8} justifyContent="center" alignItems="center">
+                <Stack direction="row" spacing={0.5} justifyContent="center" alignItems="center">
                   {row.statut === 'EN_ATTENTE' && (
                     <BsbButton
-                      size="sm"
+                      size="xs"
                       color="info"
-                      startIcon={<PlayArrowIcon sx={{ fontSize: '1rem !important' }} />}
+                      startIcon={<PlayArrowIcon sx={{ fontSize: '0.85rem !important' }} />}
                       onClick={() => setConfirmModal({ type: 'PRISE_EN_MAIN', item: row })}
                     >
                       Prise en main
@@ -405,14 +478,23 @@ export default function MaintenanceModule() {
                   )}
                   {row.statut === 'EN_COURS' && (
                     <BsbButton
-                      size="sm"
+                      size="xs"
                       color="success"
-                      startIcon={<TaskAltIcon sx={{ fontSize: '1rem !important' }} />}
+                      startIcon={<TaskAltIcon sx={{ fontSize: '0.85rem !important' }} />}
                       onClick={() => setConfirmModal({ type: 'CLOTURER', item: row })}
                     >
                       Clôturer
                     </BsbButton>
                   )}
+                  <Tooltip title="Modifier cette intervention">
+                    <IconButton
+                      size="small"
+                      sx={{ color: '#1976D2', '&:hover': { bgcolor: '#E3F2FD' } }}
+                      onClick={() => handleOpenEdit(row)}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
                   <Tooltip title="Supprimer">
                     <IconButton
                       size="small"
@@ -516,6 +598,9 @@ export default function MaintenanceModule() {
               <Typography variant="caption" sx={{ color: '#555', display: 'block' }}>
                 Site : {confirmModal.item.site_agence} {confirmModal.item.client_nom ? `(${confirmModal.item.client_nom})` : ''}
               </Typography>
+              <Typography variant="caption" sx={{ color: '#00796B', fontWeight: 600, display: 'block', mt: 0.3 }}>
+                Date d'intervention : {confirmModal.item.date_intervention ? new Date(confirmModal.item.date_intervention).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : 'N/A'}
+              </Typography>
               {confirmModal.item.observation && (
                 <Typography variant="caption" sx={{ color: '#C62828', display: 'block', mt: 0.5 }}>
                   Panne : {confirmModal.item.observation}
@@ -544,12 +629,12 @@ export default function MaintenanceModule() {
         )}
       </BsbModal>
 
-      {/* Modal d'ajout d'intervention */}
+      {/* Modal d'ajout / modification d'intervention */}
       <BsbModal
         open={openModal}
         onClose={() => setOpenModal(false)}
-        title="NOUVELLE FICHE D'INTERVENTION"
-        headerColor="primary"
+        title={editingItem ? "MODIFIER LA FICHE D'INTERVENTION" : "NOUVELLE FICHE D'INTERVENTION"}
+        headerColor={editingItem ? "info" : "primary"}
         maxWidth="md"
         actions={
           <>
@@ -557,7 +642,7 @@ export default function MaintenanceModule() {
               Annuler
             </BsbButton>
             <BsbButton color="primary" onClick={handleSubmit}>
-              Enregistrer l'intervention
+              {editingItem ? "Enregistrer les modifications" : "Enregistrer l'intervention"}
             </BsbButton>
           </>
         }
@@ -590,6 +675,27 @@ export default function MaintenanceModule() {
                   value={formData.utilisateur_concerne}
                   onChange={(e) => setFormData({ ...formData, utilisateur_concerne: e.target.value })}
                   placeholder="Ex: Mme Kouassi (Chef d'agence)"
+                />
+              </Grid>
+            </Grid>
+
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <BsbTextField
+                  label="Date d'intervention"
+                  type="date"
+                  required
+                  value={formData.date_intervention}
+                  onChange={(e) => setFormData({ ...formData, date_intervention: e.target.value })}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <BsbTextField
+                  label="Technicien assigné"
+                  value={formData.technicien_assigne}
+                  onChange={(e) => setFormData({ ...formData, technicien_assigne: e.target.value })}
+                  placeholder="Ex: Koffi Paul (Tech Froid)"
                 />
               </Grid>
             </Grid>
@@ -660,13 +766,6 @@ export default function MaintenanceModule() {
                 </Box>
               </Grid>
             </Grid>
-
-            <BsbTextField
-              label="Technicien assigné"
-              value={formData.technicien_assigne}
-              onChange={(e) => setFormData({ ...formData, technicien_assigne: e.target.value })}
-              placeholder="Ex: Koffi Paul (Tech Froid)"
-            />
           </Stack>
         </form>
       </BsbModal>
