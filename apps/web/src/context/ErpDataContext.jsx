@@ -686,14 +686,20 @@ export function ErpDataProvider({ children }) {
     const newItem = {
       ...item,
       id: item.id || `int-${Date.now()}`,
-      created_at: new Date().toISOString(),
+      client_id: item.client_id && item.client_id.trim() !== '' ? item.client_id : null,
+      client_nom: item.client_nom || null,
+      quantite: Number(item.quantite) || 1,
+      prix_unitaire: Number(item.prix_unitaire) || 0,
+      prix: Number(item.prix) || 0,
+      created_at: item.created_at || new Date().toISOString(),
       date_intervention: item.date_intervention || new Date().toISOString()
     };
     setInterventions(prev => [newItem, ...prev]);
     const supabase = getSupabaseClient();
     if (supabase) {
       try {
-        await supabase.from('interventions_maintenance').upsert([newItem]);
+        const { error } = await supabase.from('interventions_maintenance').upsert([newItem]);
+        if (error) console.error('Supabase add intervention error:', error);
       } catch (err) {
         console.warn('Supabase add intervention:', err);
       }
@@ -701,11 +707,20 @@ export function ErpDataProvider({ children }) {
   };
 
   const updateIntervention = async (id, updates) => {
-    setInterventions(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
+    const cleanUpdates = {
+      ...updates,
+      ...(updates.client_id !== undefined ? { client_id: updates.client_id && updates.client_id.trim() !== '' ? updates.client_id : null } : {}),
+      ...(updates.quantite !== undefined ? { quantite: Number(updates.quantite) || 1 } : {}),
+      ...(updates.prix_unitaire !== undefined ? { prix_unitaire: Number(updates.prix_unitaire) || 0 } : {}),
+      ...(updates.prix !== undefined ? { prix: Number(updates.prix) || 0 } : {}),
+      updated_at: new Date().toISOString()
+    };
+    setInterventions(prev => prev.map(item => item.id === id ? { ...item, ...cleanUpdates } : item));
     const supabase = getSupabaseClient();
     if (supabase) {
       try {
-        await supabase.from('interventions_maintenance').update(updates).eq('id', id);
+        const { error } = await supabase.from('interventions_maintenance').update(cleanUpdates).eq('id', id);
+        if (error) console.error('Supabase update intervention error:', error);
       } catch (err) {
         console.warn('Supabase update intervention:', err);
       }
@@ -717,7 +732,8 @@ export function ErpDataProvider({ children }) {
     const supabase = getSupabaseClient();
     if (supabase) {
       try {
-        await supabase.from('interventions_maintenance').delete().eq('id', id);
+        const { error } = await supabase.from('interventions_maintenance').delete().eq('id', id);
+        if (error) console.error('Supabase delete intervention error:', error);
       } catch (err) {
         console.warn('Supabase delete intervention:', err);
       }
@@ -728,16 +744,28 @@ export function ErpDataProvider({ children }) {
   // Gestion Articles / Stocks
   // ==========================================
   const addArticle = async (art) => {
-    const newArt = {
+    const cleanArt = {
       ...art,
       id: art.id || `art-${Date.now()}`,
-      created_at: new Date().toISOString()
+      fournisseur_id: art.fournisseur_id && art.fournisseur_id.trim() !== '' ? art.fournisseur_id : null,
+      fournisseur_nom: art.fournisseur_nom || null,
+      code_article: art.code_article || null,
+      designation: art.designation || 'Article sans nom',
+      type_article: art.type_article || 'CONSOMMABLE',
+      quantite_stock: Number(art.quantite_stock) || 0,
+      cout_unitaire_achat: Number(art.cout_unitaire_achat) || 0,
+      prix_unitaire_vente: Number(art.prix_unitaire_vente) || 0,
+      seuil_alerte: Number(art.seuil_alerte) || 5,
+      unite: art.unite || 'Pièce',
+      created_at: art.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
-    setArticles(prev => [newArt, ...prev]);
+    setArticles(prev => [cleanArt, ...prev]);
     const supabase = getSupabaseClient();
     if (supabase) {
       try {
-        await supabase.from('catalogue_articles').upsert([newArt]);
+        const { error } = await supabase.from('catalogue_articles').upsert([cleanArt]);
+        if (error) console.error('Supabase add article error:', error);
       } catch (err) {
         console.warn('Supabase add article:', err);
       }
@@ -745,11 +773,21 @@ export function ErpDataProvider({ children }) {
   };
 
   const updateArticle = async (id, updates) => {
-    setArticles(prev => prev.map(art => art.id === id ? { ...art, ...updates } : art));
+    const cleanUpdates = {
+      ...updates,
+      ...(updates.fournisseur_id !== undefined ? { fournisseur_id: updates.fournisseur_id && updates.fournisseur_id.trim() !== '' ? updates.fournisseur_id : null } : {}),
+      ...(updates.quantite_stock !== undefined ? { quantite_stock: Number(updates.quantite_stock) || 0 } : {}),
+      ...(updates.cout_unitaire_achat !== undefined ? { cout_unitaire_achat: Number(updates.cout_unitaire_achat) || 0 } : {}),
+      ...(updates.prix_unitaire_vente !== undefined ? { prix_unitaire_vente: Number(updates.prix_unitaire_vente) || 0 } : {}),
+      ...(updates.seuil_alerte !== undefined ? { seuil_alerte: Number(updates.seuil_alerte) || 5 } : {}),
+      updated_at: new Date().toISOString()
+    };
+    setArticles(prev => prev.map(art => art.id === id ? { ...art, ...cleanUpdates } : art));
     const supabase = getSupabaseClient();
     if (supabase) {
       try {
-        await supabase.from('catalogue_articles').update(updates).eq('id', id);
+        const { error } = await supabase.from('catalogue_articles').update(cleanUpdates).eq('id', id);
+        if (error) console.error('Supabase update article error:', error);
       } catch (err) {
         console.warn('Supabase update article:', err);
       }
@@ -761,7 +799,8 @@ export function ErpDataProvider({ children }) {
     const supabase = getSupabaseClient();
     if (supabase) {
       try {
-        await supabase.from('catalogue_articles').delete().eq('id', id);
+        const { error } = await supabase.from('catalogue_articles').delete().eq('id', id);
+        if (error) console.error('Supabase delete article error:', error);
       } catch (err) {
         console.warn('Supabase delete article:', err);
       }

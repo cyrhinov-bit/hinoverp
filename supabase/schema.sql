@@ -240,28 +240,23 @@ ALTER TABLE public.prestations_commandes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.agents_commerciaux ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.commissions ENABLE ROW LEVEL SECURITY;
 
--- Politiques de lecture et écriture ouvertes aux utilisateurs authentifiés
-CREATE POLICY "Profiles lecture pour authentifiés" ON public.profiles FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Profiles modifiables par admin ou soi-même" ON public.profiles FOR ALL TO authenticated USING (
-    auth.uid() = id OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'ADMIN'
-);
+-- Politiques de lecture et écriture ouvertes aux utilisateurs de l'application (anon & authenticated)
+CREATE POLICY "Profiles lecture pour tous" ON public.profiles FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "Profiles modifiables" ON public.profiles FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 
-CREATE POLICY "Modules visibles par tous" ON public.modules FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Modules gérés par admin" ON public.modules FOR ALL TO authenticated USING (
-    (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'ADMIN'
-);
+CREATE POLICY "Modules visibles par tous" ON public.modules FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "Modules gérés" ON public.modules FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 
-CREATE POLICY "User_modules visibles par tous authentifiés" ON public.user_modules FOR SELECT TO authenticated USING (true);
-CREATE POLICY "User_modules administrables par ADMIN" ON public.user_modules FOR ALL TO authenticated USING (
-    (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'ADMIN'
-);
+CREATE POLICY "User_modules visibles par tous" ON public.user_modules FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "User_modules administrables" ON public.user_modules FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 
--- Politiques Métier : Accessibles aux utilisateurs authentifiés
-CREATE POLICY "Clients/Fournisseurs tout accès" ON public.clients_fournisseurs FOR ALL TO authenticated USING (true);
-CREATE POLICY "Catalogue Articles tout accès" ON public.catalogue_articles FOR ALL TO authenticated USING (true);
-CREATE POLICY "Interventions tout accès" ON public.interventions_maintenance FOR ALL TO authenticated USING (true);
-CREATE POLICY "Mouvements Caisse tout accès" ON public.mouvements_caisse FOR ALL TO authenticated USING (true);
-CREATE POLICY "Prestations tout accès" ON public.prestations_commandes FOR ALL TO authenticated USING (true);
-CREATE POLICY "Agents Commerciaux tout accès" ON public.agents_commerciaux FOR ALL TO authenticated USING (true);
-CREATE POLICY "Commissions tout accès" ON public.commissions FOR ALL TO authenticated USING (true);
+-- Politiques Métier : Accessibles aux utilisateurs (anon & authenticated)
+CREATE POLICY "Clients/Fournisseurs tout accès" ON public.clients_fournisseurs FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Catalogue Articles tout accès" ON public.catalogue_articles FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Interventions tout accès" ON public.interventions_maintenance FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Mouvements Caisse tout accès" ON public.mouvements_caisse FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Prestations tout accès" ON public.prestations_commandes FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Agents Commerciaux tout accès" ON public.agents_commerciaux FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Commissions tout accès" ON public.commissions FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
 
