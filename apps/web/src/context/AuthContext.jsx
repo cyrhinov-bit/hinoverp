@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { INITIAL_PROFILES } from '@hinov/core';
+import { INITIAL_PROFILES, getSupabaseClient } from '@hinov/core';
 
 const defaultAuthValue = {
   currentUser: null,
@@ -36,7 +36,7 @@ export function AuthProvider({ children }) {
     }
   }, [currentUser]);
 
-  const login = (email, password, profilesList = []) => {
+  const login = async (email, password, profilesList = []) => {
     let savedProfiles = [];
     try {
       const s = localStorage.getItem('hinov_profiles');
@@ -57,10 +57,53 @@ export function AuthProvider({ children }) {
       }
     });
 
-    const cleanEmail = (email || '').trim().toLowerCase();
+    const rawInput = (email || '').trim().toLowerCase();
+    let cleanEmail = rawInput;
+    if (cleanEmail && !cleanEmail.includes('@')) {
+      cleanEmail = `${cleanEmail}@hinovgroup.com`;
+    }
     const cleanPassword = (password || '').trim();
 
-    const user = uniqueProfilesMap.get(cleanEmail);
+    // 1. Recherche par email exact ou normalisé
+    let user = uniqueProfilesMap.get(cleanEmail) || uniqueProfilesMap.get(rawInput);
+
+    // 2. Recherche par préfixe d'email ou correspondance de nom
+    if (!user) {
+      user = Array.from(uniqueProfilesMap.values()).find((p) => {
+        if (!p) return false;
+        const pEmail = (p.email || '').toLowerCase();
+        const pNom = (p.nom || '').toLowerCase();
+        const userPrefix = cleanEmail.split('@')[0];
+        return (
+          pEmail === cleanEmail ||
+          pEmail === rawInput ||
+          pEmail.split('@')[0] === userPrefix ||
+          pNom.includes(userPrefix)
+        );
+      });
+    }
+
+    // 3. Si non trouvé localement, interroger Supabase en direct
+    if (!user) {
+      const supabase = getSupabaseClient();
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .or(`email.ilike.${cleanEmail},email.ilike.${rawInput}`)
+            .maybeSingle();
+
+          if (data && !error) {
+            user = data;
+            const updated = [data, ...savedProfiles.filter((p) => p.id !== data.id)];
+            localStorage.setItem('hinov_profiles', JSON.stringify(updated));
+          }
+        } catch (supErr) {
+          console.warn('Supabase direct profile query failed:', supErr);
+        }
+      }
+    }
 
     if (!user) {
       return { success: false, error: 'Adresse email introuvable.' };
@@ -72,7 +115,12 @@ export function AuthProvider({ children }) {
 
     const userPwd = (user.password || '').trim();
 
-    if (userPwd !== cleanPassword) {
+    // Tolérance sur les mots de passe par défaut configurés
+    const isPasswordValid =
+      userPwd === cleanPassword ||
+      (!user.password && (cleanPassword === '123654' || cleanPassword === 'Hinov@123' || cleanPassword === '04041992'));
+
+    if (!isPasswordValid) {
       return { success: false, error: 'Mot de passe incorrect.' };
     }
 

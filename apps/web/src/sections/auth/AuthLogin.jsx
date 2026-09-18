@@ -48,7 +48,7 @@ export default function AuthLogin() {
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
 
@@ -60,7 +60,7 @@ export default function AuthLogin() {
     setLoading(true);
 
     try {
-      const result = login(email.trim(), password, profiles);
+      const result = await login(email.trim(), password, profiles);
       if (result.success) {
         if (rememberMe) {
           localStorage.setItem('hinov_remember_me', 'true');
