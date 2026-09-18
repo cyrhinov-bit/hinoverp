@@ -97,13 +97,13 @@ export const INITIAL_PROFILES: Profile[] = [
     created_at: new Date().toISOString()
   },
   {
-    id: 'usr-staff-3',
+    id: 'usr-admin-2',
     nom: 'Y. Ouattara',
-    poste: 'Collaborateur & Commercial',
+    poste: 'Directeur Général & Administrateur',
     email: 'y.ouattara@hinovgroup.com',
     password: '123654',
     telephone: '+225 07 00 00 00 00',
-    role: 'USER',
+    role: 'ADMIN',
     actif: true,
     avatar_url: '',
     created_at: new Date().toISOString()
@@ -126,13 +126,13 @@ export const INITIAL_USER_MODULES: UserModule[] = [
   { id: 'um-12', user_id: 'usr-staff-2', module_id: 'mod-5', is_enabled: true }, // Clients & Fournisseurs
   { id: 'um-13', user_id: 'usr-staff-2', module_id: 'mod-6', is_enabled: false }, // Agents Commerciaux (DÉSACTIVÉ)
   { id: 'um-14', user_id: 'usr-staff-2', module_id: 'mod-7', is_enabled: false }, // Gestion des Commissions (DÉSACTIVÉ)
-  { id: 'um-15', user_id: 'usr-staff-3', module_id: 'mod-1', is_enabled: true }, // Maintenance
-  { id: 'um-16', user_id: 'usr-staff-3', module_id: 'mod-2', is_enabled: true }, // Stocks
-  { id: 'um-17', user_id: 'usr-staff-3', module_id: 'mod-3', is_enabled: true }, // Dépenses & Caisse
-  { id: 'um-18', user_id: 'usr-staff-3', module_id: 'mod-4', is_enabled: true }, // Prestations & Commandes
-  { id: 'um-19', user_id: 'usr-staff-3', module_id: 'mod-5', is_enabled: true }, // Clients & Fournisseurs
-  { id: 'um-20', user_id: 'usr-staff-3', module_id: 'mod-6', is_enabled: true }, // Agents Commerciaux
-  { id: 'um-21', user_id: 'usr-staff-3', module_id: 'mod-7', is_enabled: true }  // Gestion des Commissions
+  { id: 'um-15', user_id: 'usr-admin-2', module_id: 'mod-1', is_enabled: true }, // Maintenance
+  { id: 'um-16', user_id: 'usr-admin-2', module_id: 'mod-2', is_enabled: true }, // Stocks
+  { id: 'um-17', user_id: 'usr-admin-2', module_id: 'mod-3', is_enabled: true }, // Dépenses & Caisse
+  { id: 'um-18', user_id: 'usr-admin-2', module_id: 'mod-4', is_enabled: true }, // Prestations & Commandes
+  { id: 'um-19', user_id: 'usr-admin-2', module_id: 'mod-5', is_enabled: true }, // Clients & Fournisseurs
+  { id: 'um-20', user_id: 'usr-admin-2', module_id: 'mod-6', is_enabled: true }, // Agents Commerciaux
+  { id: 'um-21', user_id: 'usr-admin-2', module_id: 'mod-7', is_enabled: true }  // Gestion des Commissions
 ];
 
 // Données Métier de Démonstration & Initialisation
