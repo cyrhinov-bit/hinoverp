@@ -107,18 +107,6 @@ export const INITIAL_PROFILES: Profile[] = [
     actif: true,
     avatar_url: '',
     created_at: new Date().toISOString()
-  },
-  {
-    id: 'usr-staff-3',
-    nom: 'S. Diallo',
-    poste: 'Collaborateur & Gestionnaire Opérationnel',
-    email: 's.diallo@hinovgroup.com',
-    password: '123654',
-    telephone: '+225 07 00 00 00 00',
-    role: 'USER',
-    actif: true,
-    avatar_url: '',
-    created_at: new Date().toISOString()
   }
 ];
 
@@ -144,14 +132,7 @@ export const INITIAL_USER_MODULES: UserModule[] = [
   { id: 'um-18', user_id: 'usr-admin-2', module_id: 'mod-4', is_enabled: true }, // Prestations & Commandes
   { id: 'um-19', user_id: 'usr-admin-2', module_id: 'mod-5', is_enabled: true }, // Clients & Fournisseurs
   { id: 'um-20', user_id: 'usr-admin-2', module_id: 'mod-6', is_enabled: true }, // Agents Commerciaux
-  { id: 'um-21', user_id: 'usr-admin-2', module_id: 'mod-7', is_enabled: true }, // Gestion des Commissions
-  { id: 'um-22', user_id: 'usr-staff-3', module_id: 'mod-1', is_enabled: true }, // Maintenance
-  { id: 'um-23', user_id: 'usr-staff-3', module_id: 'mod-2', is_enabled: true }, // Stocks
-  { id: 'um-24', user_id: 'usr-staff-3', module_id: 'mod-3', is_enabled: true }, // Dépenses & Caisse
-  { id: 'um-25', user_id: 'usr-staff-3', module_id: 'mod-4', is_enabled: true }, // Prestations & Commandes
-  { id: 'um-26', user_id: 'usr-staff-3', module_id: 'mod-5', is_enabled: true }, // Clients & Fournisseurs
-  { id: 'um-27', user_id: 'usr-staff-3', module_id: 'mod-6', is_enabled: true }, // Agents Commerciaux
-  { id: 'um-28', user_id: 'usr-staff-3', module_id: 'mod-7', is_enabled: true }  // Gestion des Commissions
+  { id: 'um-21', user_id: 'usr-admin-2', module_id: 'mod-7', is_enabled: true }  // Gestion des Commissions
 ];
 
 // Données Métier de Démonstration & Initialisation
