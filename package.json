@@ -19,5 +19,11 @@
     "supabase": "^2.117.0",
     "turbo": "^2.4.0"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "esbuild"
+    ]
+  },
   "packageManager": "pnpm@10.5.2"
 }
