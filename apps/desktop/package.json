@@ -10,8 +10,8 @@
     "dev:live": "concurrently \"pnpm --filter @hinov/web dev\" \"wait-on http://localhost:3000 && tsc && cross-env VITE_DEV_SERVER_URL=http://localhost:3000 electron .\"",
     "build": "tsc",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder",
-    "dist:win": "electron-builder --win --x64",
+    "dist": "electron-builder --win nsis --x64",
+    "dist:win": "electron-builder --win nsis --x64",
     "dist:portable": "electron-builder --win portable --x64"
   },
   "build": {
@@ -26,18 +26,7 @@
     ],
     "win": {
       "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        }
+        "nsis"
       ]
     },
     "nsis": {
@@ -45,7 +34,11 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Hinov ERP"
+      "shortcutName": "Hinov ERP",
+      "artifactName": "${productName} Setup ${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName} Portable ${version}.${ext}"
     }
   },
   "dependencies": {
@@ -60,4 +53,3 @@
     "wait-on": "^8.0.2"
   }
 }
-
