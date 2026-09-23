@@ -10,6 +10,9 @@
     "dev:mobile": "turbo run dev --filter=@hinov/mobile",
     "build": "turbo run build",
     "build:web": "pnpm --filter @hinov/core build && pnpm --filter @hinov/web build",
+    "build:desktop": "pnpm --filter @hinov/core build && pnpm --filter @hinov/web build && pnpm --filter @hinov/desktop build",
+    "dist:desktop": "pnpm build:desktop && pnpm --filter @hinov/desktop dist:win",
+    "dist:desktop:portable": "pnpm build:desktop && pnpm --filter @hinov/desktop dist:portable",
     "lint": "turbo run lint"
   },
   "devDependencies": {

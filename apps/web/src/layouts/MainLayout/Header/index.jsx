@@ -103,20 +103,36 @@ export default function Header() {
 
         {/* Right Side: Sync Badge + Skin Switcher + Profile */}
         <Stack direction="row" sx={{ alignItems: 'center', gap: { xs: 1, sm: 1.5 } }}>
-          <Chip
-            label="Supabase Realtime"
-            size="small"
-            sx={{
-              display: { xs: 'none', md: 'inline-flex' },
-              bgcolor: 'rgba(255, 255, 255, 0.2)',
-              color: '#ffffff',
-              fontWeight: 700,
-              fontSize: '0.72rem',
-              border: '1px solid rgba(255, 255, 255, 0.4)'
-            }}
-          />
+          {typeof window !== 'undefined' && window.electronAPI?.isDesktop ? (
+            <Chip
+              label="Desktop Edition"
+              size="small"
+              sx={{
+                bgcolor: 'rgba(255, 255, 255, 0.25)',
+                color: '#ffffff',
+                fontWeight: 800,
+                fontSize: '0.72rem',
+                border: '1px solid rgba(255, 255, 255, 0.5)'
+              }}
+            />
+          ) : (
+            <>
+              <Chip
+                label="Supabase Realtime"
+                size="small"
+                sx={{
+                  display: { xs: 'none', md: 'inline-flex' },
+                  bgcolor: 'rgba(255, 255, 255, 0.2)',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '0.72rem',
+                  border: '1px solid rgba(255, 255, 255, 0.4)'
+                }}
+              />
+              <PwaInstallButton variant="header" />
+            </>
+          )}
 
-          <PwaInstallButton variant="header" />
           <SkinSwitcher />
           <Profile />
 
