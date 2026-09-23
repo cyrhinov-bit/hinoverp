@@ -207,73 +207,91 @@ export default function UsersManager() {
     });
   };
 
-  const handleSaveUser = (e) => {
+  const handleSaveUser = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     setFormError('');
 
     const cleanNom = (formData.nom || '').trim();
-    const cleanEmail = (formData.email || '').trim().toLowerCase();
+    let cleanEmail = (formData.email || '').trim().toLowerCase();
 
     if (!cleanNom) {
       setFormError('Le nom et prénom(s) sont obligatoires.');
       return;
     }
     if (!cleanEmail) {
-      setFormError("L'adresse email est obligatoire.");
-      return;
-    }
-    if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
-      setFormError('Veuillez saisir une adresse email valide (ex: contact@hinovgroup.com).');
+      setFormError("L'adresse email ou identifiant est obligatoire.");
       return;
     }
 
-    if (editingUser) {
-      const updateData = {
-        nom: cleanNom,
-        poste: formData.poste?.trim() || '',
-        email: cleanEmail,
-        telephone: formData.telephone?.trim() || '',
-        role: formData.role,
-        actif: formData.actif
-      };
-      if (formData.password && formData.password.trim()) {
-        updateData.password = formData.password.trim();
-      }
-      updateProfile(editingUser.id, updateData);
-      // Mettre à jour les modules de façon atomique
-      setUserModulesForUser(editingUser.id, formData.enabledModules, formData.role === 'ADMIN');
-      setToast({
-        open: true,
-        message: `Compte utilisateur ${cleanNom} mis à jour avec succès.`,
-        severity: 'success'
-      });
-      setCreateModalOpen(false);
-    } else {
-      const userPassword = formData.password?.trim() || generateRandomPassword();
-      const newCreatedUser = addProfile(
-        {
+    // Auto-complétion du domaine @hinovgroup.com si absent
+    if (!cleanEmail.includes('@')) {
+      cleanEmail = `${cleanEmail}@hinovgroup.com`;
+    }
+
+    // Vérification de doublon d'email
+    const emailExists = profiles.some(
+      (p) => p.id !== editingUser?.id && (p.email || '').trim().toLowerCase() === cleanEmail
+    );
+    if (emailExists) {
+      setFormError(`Un compte avec l'adresse email "${cleanEmail}" existe déjà.`);
+      return;
+    }
+
+    try {
+      if (editingUser) {
+        const updateData = {
           nom: cleanNom,
           poste: formData.poste?.trim() || '',
           email: cleanEmail,
           telephone: formData.telephone?.trim() || '',
-          password: userPassword,
           role: formData.role,
           actif: formData.actif
-        },
-        formData.enabledModules
-      );
+        };
+        if (formData.password && formData.password.trim()) {
+          updateData.password = formData.password.trim();
+        }
+        await updateProfile(editingUser.id, updateData);
+        // Mettre à jour les modules de façon atomique
+        await setUserModulesForUser(editingUser.id, formData.enabledModules, formData.role === 'ADMIN');
+        setToast({
+          open: true,
+          message: `Compte utilisateur ${cleanNom} mis à jour avec succès.`,
+          severity: 'success'
+        });
+        setCreateModalOpen(false);
+      } else {
+        const userPassword = formData.password?.trim() || generateRandomPassword();
+        const newCreatedUser = await addProfile(
+          {
+            nom: cleanNom,
+            poste: formData.poste?.trim() || '',
+            email: cleanEmail,
+            telephone: formData.telephone?.trim() || '',
+            password: userPassword,
+            role: formData.role,
+            actif: formData.actif
+          },
+          formData.enabledModules
+        );
 
-      setCreateModalOpen(false);
-      // Ouvrir immédiatement la boîte modale de confirmation avec les identifiants
-      setCreatedSuccessUser({
-        ...newCreatedUser,
-        plainPassword: userPassword
-      });
-      setToast({
-        open: true,
-        message: `Compte utilisateur créé avec succès pour ${cleanNom} !`,
-        severity: 'success'
-      });
+        setCreateModalOpen(false);
+        // Ouvrir immédiatement la boîte modale de confirmation avec les identifiants
+        setCreatedSuccessUser({
+          ...newCreatedUser,
+          nom: cleanNom,
+          email: cleanEmail,
+          role: formData.role,
+          plainPassword: userPassword
+        });
+        setToast({
+          open: true,
+          message: `Compte utilisateur créé avec succès pour ${cleanNom} !`,
+          severity: 'success'
+        });
+      }
+    } catch (err) {
+      console.error('Erreur enregistrement utilisateur:', err);
+      setFormError("Une erreur est survenue lors de l'enregistrement de l'utilisateur.");
     }
   };
 

@@ -22,6 +22,18 @@ export default defineConfig(({ mode }) => {
       global: 'window'
     },
     base: APP_BASE_URL,
+    build: {
+      chunkSizeWarningLimit: 1000,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+            'vendor-mui': ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled', '@emotion/cache'],
+            'vendor-charts': ['apexcharts', 'react-apexcharts']
+          }
+        }
+      }
+    },
     plugins: [
       react(),
       jsconfigPaths(),

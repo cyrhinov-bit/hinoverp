@@ -201,12 +201,36 @@ export function ErpDataProvider({ children }) {
     localStorage.setItem('hinov_prod_admin_v2', 'true');
   }, []);
 
-  // Synchronisation descendante au chargement si Supabase est configuré
+  // Synchronisation descendante au chargement si Supabase est configuré avec résolution par horodatage
   useEffect(() => {
     const supabase = getSupabaseClient();
     if (!supabase) return;
 
     let isMounted = true;
+
+    function mergeEntities(remoteList, localList, idKey = 'id') {
+      const map = new Map();
+      (remoteList || []).forEach((item) => {
+        if (item && item[idKey]) map.set(item[idKey], item);
+      });
+      (localList || []).forEach((localItem) => {
+        if (!localItem || !localItem[idKey]) return;
+        const remoteItem = map.get(localItem[idKey]);
+        if (!remoteItem) {
+          map.set(localItem[idKey], localItem);
+        } else {
+          const localTime = new Date(localItem.updated_at || localItem.created_at || 0).getTime();
+          const remoteTime = new Date(remoteItem.updated_at || remoteItem.created_at || 0).getTime();
+          if (localTime > remoteTime) {
+            map.set(localItem[idKey], { ...remoteItem, ...localItem });
+          } else {
+            map.set(localItem[idKey], { ...localItem, ...remoteItem });
+          }
+        }
+      });
+      return Array.from(map.values());
+    }
+
     async function hydrateFromSupabase() {
       try {
         const [
@@ -236,14 +260,7 @@ export function ErpDataProvider({ children }) {
         if (!isMounted) return;
 
         if (profRes.data && profRes.data.length > 0) {
-          setProfiles((prev) => {
-            const map = new Map();
-            profRes.data.forEach((p) => map.set(p.id, p));
-            prev.forEach((p) => {
-              if (!map.has(p.id)) map.set(p.id, p);
-            });
-            return Array.from(map.values());
-          });
+          setProfiles((prev) => mergeEntities(profRes.data, prev, 'id'));
         }
 
         if (modRes.data && modRes.data.length > 0) {
@@ -263,80 +280,31 @@ export function ErpDataProvider({ children }) {
         }
 
         if (tiersRes.data && tiersRes.data.length > 0) {
-          setClientsFournisseurs((prev) => {
-            const map = new Map();
-            tiersRes.data.forEach((t) => map.set(t.id, t));
-            prev.forEach((t) => {
-              if (!map.has(t.id)) map.set(t.id, t);
-            });
-            return Array.from(map.values());
-          });
+          setClientsFournisseurs((prev) => mergeEntities(tiersRes.data, prev, 'id'));
         }
 
         if (comRes.data && comRes.data.length > 0) {
-          setAgentsCommerciaux((prev) => {
-            const map = new Map();
-            comRes.data.forEach((c) => map.set(c.id, c));
-            prev.forEach((c) => {
-              if (!map.has(c.id)) map.set(c.id, c);
-            });
-            return Array.from(map.values());
-          });
+          setAgentsCommerciaux((prev) => mergeEntities(comRes.data, prev, 'id'));
         }
 
         if (artRes.data && artRes.data.length > 0) {
-          setArticles((prev) => {
-            const map = new Map();
-            artRes.data.forEach((a) => map.set(a.id, a));
-            prev.forEach((a) => {
-              if (!map.has(a.id)) map.set(a.id, a);
-            });
-            return Array.from(map.values());
-          });
+          setArticles((prev) => mergeEntities(artRes.data, prev, 'id'));
         }
 
         if (intRes.data && intRes.data.length > 0) {
-          setInterventions((prev) => {
-            const map = new Map();
-            intRes.data.forEach((i) => map.set(i.id, i));
-            prev.forEach((i) => {
-              if (!map.has(i.id)) map.set(i.id, i);
-            });
-            return Array.from(map.values());
-          });
+          setInterventions((prev) => mergeEntities(intRes.data, prev, 'id'));
         }
 
         if (mvtRes.data && mvtRes.data.length > 0) {
-          setMouvements((prev) => {
-            const map = new Map();
-            mvtRes.data.forEach((m) => map.set(m.id, m));
-            prev.forEach((m) => {
-              if (!map.has(m.id)) map.set(m.id, m);
-            });
-            return Array.from(map.values());
-          });
+          setMouvements((prev) => mergeEntities(mvtRes.data, prev, 'id'));
         }
 
         if (prestRes.data && prestRes.data.length > 0) {
-          setPrestations((prev) => {
-            const map = new Map();
-            prestRes.data.forEach((p) => map.set(p.id, p));
-            prev.forEach((p) => {
-              if (!map.has(p.id)) map.set(p.id, p);
-            });
-            return Array.from(map.values());
-          });
+          setPrestations((prev) => mergeEntities(prestRes.data, prev, 'id'));
         }
 
         if (commRes.data && commRes.data.length > 0) {
-          setCommissions((prev) => {
-            const map = new Map();
-            commRes.data.forEach((c) => map.set(c.id, c));
-            prev.forEach((c) => {
-              if (!map.has(c.id)) map.set(c.id, c);
-            });
-            return Array.from(map.values());
-          });
+          setCommissions((prev) => mergeEntities(commRes.data, prev, 'id'));
         }
       } catch (err) {
         console.warn('Supabase hydration error:', err);
