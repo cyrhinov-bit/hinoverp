@@ -186,3 +186,4 @@ VALUES
     ('um-21', 'usr-admin-2', 'mod-7', true)
 ON CONFLICT (user_id, module_id) DO UPDATE
 SET is_enabled = EXCLUDED.is_enabled;
+
