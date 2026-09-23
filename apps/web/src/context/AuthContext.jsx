@@ -88,16 +88,40 @@ export function AuthProvider({ children }) {
       const supabase = getSupabaseClient();
       if (supabase) {
         try {
-          const { data, error } = await supabase
+          let supRes = await supabase
             .from('profiles')
             .select('*')
-            .or(`email.ilike.${cleanEmail},email.ilike.${rawInput}`)
+            .ilike('email', cleanEmail)
             .maybeSingle();
 
-          if (data && !error) {
-            user = data;
-            const updated = [data, ...savedProfiles.filter((p) => p.id !== data.id)];
+          if (!supRes.data && cleanEmail !== rawInput) {
+            supRes = await supabase
+              .from('profiles')
+              .select('*')
+              .ilike('email', rawInput)
+              .maybeSingle();
+          }
+
+          if (supRes.data && !supRes.error) {
+            user = supRes.data;
+            const updated = [user, ...savedProfiles.filter((p) => p.id !== user.id)];
             localStorage.setItem('hinov_profiles', JSON.stringify(updated));
+
+            // Récupérer et hydrater immédiatement ses permissions
+            const { data: userMods } = await supabase
+              .from('user_modules')
+              .select('*')
+              .eq('user_id', user.id);
+
+            if (userMods && userMods.length > 0) {
+              let currentLocalUm = [];
+              try {
+                const sUm = localStorage.getItem('hinov_user_modules');
+                if (sUm) currentLocalUm = JSON.parse(sUm);
+              } catch (e) {}
+              const mergedUm = [...currentLocalUm.filter((um) => um.user_id !== user.id), ...userMods];
+              localStorage.setItem('hinov_user_modules', JSON.stringify(mergedUm));
+            }
           }
         } catch (supErr) {
           console.warn('Supabase direct profile query failed:', supErr);
