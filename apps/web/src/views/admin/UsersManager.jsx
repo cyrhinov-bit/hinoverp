@@ -573,7 +573,8 @@ export default function UsersManager() {
               )
             }
           ]}
-          data={profiles}
+          rows={profiles}
+          searchPlaceholder="Rechercher collaborateur, email, fonction..."
           emptyMessage="Aucun utilisateur enregistré."
         />
       </BsbCard>
@@ -597,7 +598,7 @@ export default function UsersManager() {
           </>
         }
       >
-        <form onSubmit={handleSaveUser}>
+        <form noValidate onSubmit={handleSaveUser}>
           <Stack spacing={2} sx={{ pt: 1 }}>
             {formError && (
               <Alert severity="error" sx={{ borderRadius: '2px', py: 0.5 }}>
@@ -614,7 +615,7 @@ export default function UsersManager() {
                     setFormData({ ...formData, nom: e.target.value });
                     if (formError) setFormError('');
                   }}
-                  placeholder="Ex: Eric Kouassi"
+                  placeholder="Ex: S. Diallo"
                 />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
@@ -622,7 +623,7 @@ export default function UsersManager() {
                   label="Poste / Fonction"
                   value={formData.poste}
                   onChange={(e) => setFormData({ ...formData, poste: e.target.value })}
-                  placeholder="Ex: Chef de Service Maintenance"
+                  placeholder="Ex: Gestionnaire Opérationnel"
                 />
               </Grid>
             </Grid>
@@ -630,12 +631,12 @@ export default function UsersManager() {
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <BsbTextField
-                  label="Adresse Email (Identifiant)"
-                  type="email"
+                  label="Identifiant ou Adresse Email"
+                  type="text"
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="eric.kouassi@entreprise.ci"
+                  placeholder="Ex: s.diallo ou s.diallo@hinovgroup.com"
                 />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
