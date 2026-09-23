@@ -83,7 +83,7 @@ export default function AuthLogin() {
   };
 
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
+    <Box component="form" onSubmit={handleSubmit} noValidate sx={{ width: '100%' }}>
       <Stack spacing={2.5}>
         {errorMessage && (
           <Alert severity="error" sx={{ borderRadius: '2px', fontWeight: 600 }}>
@@ -93,12 +93,12 @@ export default function AuthLogin() {
 
         <Box>
           <BsbTextField
-            label="Adresse Email Professionnelle"
-            type="email"
+            label="Identifiant ou Adresse Email"
+            type="text"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="exemple@hinovgroup.com"
+            placeholder="Ex: e.gnonskan ou e.gnonskan@hinovgroup.com"
             autoFocus={!email}
           />
         </Box>
