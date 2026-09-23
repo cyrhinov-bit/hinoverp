@@ -18,7 +18,7 @@
     "appId": "com.hinovgroup.erp",
     "productName": "Hinov ERP",
     "directories": {
-      "output": "../../dist-electron-packages"
+      "output": "../../release-builds"
     },
     "files": [
       "dist-electron/**/*",
