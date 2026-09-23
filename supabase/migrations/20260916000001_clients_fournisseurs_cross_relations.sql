@@ -3,6 +3,8 @@
 -- ====================================================================
 
 -- 1. Mettre à jour la table MODULES pour inclure CLIENTS_FOURNISSEURS
+ALTER TABLE public.modules DROP CONSTRAINT IF EXISTS modules_code_module_check;
+
 INSERT INTO public.modules (id, code_module, nom, description, icone, ordre)
 VALUES
     ('55555555-5555-5555-5555-555555555555', 'CLIENTS_FOURNISSEURS', 'Clients & Fournisseurs', 'Répertoire centralisé des tiers, contacts, coordonnées et historique croisé', 'PeopleAltTwoTone', 5)
