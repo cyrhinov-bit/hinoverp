@@ -5,13 +5,16 @@ import * as fs from 'fs';
 let mainWindow: BrowserWindow | null = null;
 
 function getHtmlEntryPath(): string {
-  // Chemins possibles selon le mode (Dev, Packagé, Monorepo)
+  // Chemins possibles selon le mode (Dev, Packagé ASAR, Packagé Dir, Monorepo)
   const pathsToTry = [
+    path.join(app.getAppPath(), 'dist/index.html'),
+    path.join(__dirname, '../dist/index.html'),
     path.join(__dirname, '../../web/dist/index.html'),
     path.join(__dirname, '../web/dist/index.html'),
     path.join(app.getAppPath(), 'apps/web/dist/index.html'),
     path.join(app.getAppPath(), 'web/dist/index.html'),
-    path.join(process.resourcesPath, 'app/apps/web/dist/index.html'),
+    path.join(process.resourcesPath, 'app.asar/dist/index.html'),
+    path.join(process.resourcesPath, 'app/dist/index.html'),
     path.join(process.resourcesPath, 'apps/web/dist/index.html')
   ];
 
@@ -22,7 +25,7 @@ function getHtmlEntryPath(): string {
   }
 
   // Repli par défaut
-  return path.join(__dirname, '../../web/dist/index.html');
+  return path.join(app.getAppPath(), 'dist/index.html');
 }
 
 function createWindow() {
@@ -46,13 +49,16 @@ function createWindow() {
 
   if (isDev && webUrl) {
     mainWindow.loadURL(webUrl);
-    mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
     const indexPath = getHtmlEntryPath();
     mainWindow.loadFile(indexPath).catch((err) => {
-      console.warn('Echec chargement fichier HTML local:', err);
+      console.error('Echec chargement fichier HTML local:', err);
     });
   }
+
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    console.error('Erreur chargement Electron:', errorCode, errorDescription, validatedURL);
+  });
 
   // Configuration du menu applicatif natif
   const template: Electron.MenuItemConstructorOptions[] = [
@@ -103,40 +109,28 @@ function createWindow() {
   });
 }
 
-// Gestion des événements IPC
-ipcMain.on('window-minimize', () => mainWindow?.minimize());
-ipcMain.on('window-maximize', () => {
-  if (mainWindow?.isMaximized()) {
-    mainWindow.unmaximize();
-  } else {
-    mainWindow?.maximize();
-  }
-});
-ipcMain.on('window-close', () => mainWindow?.close());
-ipcMain.handle('window-is-maximized', () => mainWindow?.isMaximized() || false);
+// Handlers IPC pour la communication avec le front-end React
+ipcMain.handle('app:version', () => app.getVersion());
+ipcMain.handle('app:isPackaged', () => app.isPackaged);
 
-ipcMain.on('show-notification', (_event, { title, body }) => {
+ipcMain.on('app:notify', (_event, { title, body }) => {
   if (Notification.isSupported()) {
-    new Notification({ title, body }).show();
+    new Notification({ title: title || 'Hinov ERP', body: body || '' }).show();
   }
 });
 
-ipcMain.on('window-print', () => {
-  mainWindow?.webContents.print({ silent: false, printBackground: true });
-});
+app.whenReady().then(() => {
+  createWindow();
 
-app.whenReady().then(createWindow);
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
-
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
-});
-
-
