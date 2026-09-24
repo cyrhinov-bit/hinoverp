@@ -44,6 +44,9 @@ const defaultErpDataContext = {
   clientsFournisseurs: INITIAL_CLIENTS_FOURNISSEURS,
   agentsCommerciaux: INITIAL_AGENTS_COMMERCIAUX,
   commissions: INITIAL_COMMISSIONS,
+  realtimeStatus: 'OFFLINE',
+  isSupabaseOnline: false,
+  refreshFromSupabase: async () => {},
   hasModule: () => true,
   toggleUserModule: () => {},
   addProfile: () => {},
@@ -219,120 +222,256 @@ export function ErpDataProvider({ children }) {
     localStorage.setItem('hinov_prod_admin_v2', 'true');
   }, []);
 
-  // Synchronisation descendante au chargement si Supabase est configuré avec résolution par horodatage
-  useEffect(() => {
+  const [realtimeStatus, setRealtimeStatus] = useState('CONNECTING');
+  const [isSupabaseOnline, setIsSupabaseOnline] = useState(false);
+
+  // Helper pour fusionner les entités locales et distantes
+  function mergeEntities(remoteList, localList, idKey = 'id') {
+    const map = new Map();
+    (remoteList || []).forEach((item) => {
+      if (item && item[idKey]) map.set(item[idKey], item);
+    });
+    (localList || []).forEach((localItem) => {
+      if (!localItem || !localItem[idKey]) return;
+      const remoteItem = map.get(localItem[idKey]);
+      if (!remoteItem) {
+        map.set(localItem[idKey], localItem);
+      } else {
+        const localTime = new Date(localItem.updated_at || localItem.created_at || 0).getTime();
+        const remoteTime = new Date(remoteItem.updated_at || remoteItem.created_at || 0).getTime();
+        if (localTime > remoteTime) {
+          map.set(localItem[idKey], { ...remoteItem, ...localItem });
+        } else {
+          map.set(localItem[idKey], { ...localItem, ...remoteItem });
+        }
+      }
+    });
+    return Array.from(map.values());
+  }
+
+  // Fonction de rechargement manuel ou automatique depuis Supabase
+  const refreshFromSupabase = async () => {
     const supabase = getSupabaseClient();
     if (!supabase) return;
 
+    try {
+      const [
+        profRes,
+        modRes,
+        umRes,
+        tiersRes,
+        comRes,
+        artRes,
+        intRes,
+        mvtRes,
+        prestRes,
+        commRes
+      ] = await Promise.all([
+        supabase.from('profiles').select('*'),
+        supabase.from('modules').select('*'),
+        supabase.from('user_modules').select('*'),
+        supabase.from('clients_fournisseurs').select('*'),
+        supabase.from('agents_commerciaux').select('*'),
+        supabase.from('catalogue_articles').select('*'),
+        supabase.from('interventions_maintenance').select('*'),
+        supabase.from('mouvements_caisse').select('*'),
+        supabase.from('prestations_commandes').select('*'),
+        supabase.from('commissions').select('*')
+      ]);
+
+      setIsSupabaseOnline(true);
+
+      if (profRes.data && profRes.data.length > 0) {
+        setProfiles((prev) => mergeEntities(profRes.data, prev, 'id'));
+      }
+      if (modRes.data && modRes.data.length > 0) {
+        setModules(modRes.data);
+      }
+      if (umRes.data && umRes.data.length > 0) {
+        setUserModules((prev) => {
+          const map = new Map();
+          umRes.data.forEach((um) => map.set(`${um.user_id}_${um.module_id}`, um));
+          prev.forEach((um) => {
+            const key = `${um.user_id}_${um.module_id}`;
+            if (!map.has(key)) map.set(key, um);
+          });
+          return Array.from(map.values());
+        });
+      }
+      if (tiersRes.data && tiersRes.data.length > 0) {
+        setClientsFournisseurs((prev) => mergeEntities(tiersRes.data, prev, 'id'));
+      }
+      if (comRes.data && comRes.data.length > 0) {
+        setAgentsCommerciaux((prev) => mergeEntities(comRes.data, prev, 'id'));
+      }
+      if (artRes.data && artRes.data.length > 0) {
+        setArticles((prev) => mergeEntities(artRes.data, prev, 'id'));
+      }
+      if (intRes.data && intRes.data.length > 0) {
+        setInterventions((prev) => mergeEntities(intRes.data, prev, 'id'));
+      }
+      if (mvtRes.data && mvtRes.data.length > 0) {
+        setMouvements((prev) => mergeEntities(mvtRes.data, prev, 'id'));
+      }
+      if (prestRes.data && prestRes.data.length > 0) {
+        setPrestations((prev) => mergeEntities(prestRes.data, prev, 'id'));
+      }
+      if (commRes.data && commRes.data.length > 0) {
+        setCommissions((prev) => mergeEntities(commRes.data, prev, 'id'));
+      }
+    } catch (err) {
+      console.warn('Supabase refresh error:', err);
+    }
+  };
+
+  // Synchronisation descendante initiale et souscriptions Supabase Realtime (temps réel)
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      setRealtimeStatus('OFFLINE');
+      setIsSupabaseOnline(false);
+      return;
+    }
+
     let isMounted = true;
 
-    function mergeEntities(remoteList, localList, idKey = 'id') {
-      const map = new Map();
-      (remoteList || []).forEach((item) => {
-        if (item && item[idKey]) map.set(item[idKey], item);
-      });
-      (localList || []).forEach((localItem) => {
-        if (!localItem || !localItem[idKey]) return;
-        const remoteItem = map.get(localItem[idKey]);
-        if (!remoteItem) {
-          map.set(localItem[idKey], localItem);
-        } else {
-          const localTime = new Date(localItem.updated_at || localItem.created_at || 0).getTime();
-          const remoteTime = new Date(remoteItem.updated_at || remoteItem.created_at || 0).getTime();
-          if (localTime > remoteTime) {
-            map.set(localItem[idKey], { ...remoteItem, ...localItem });
-          } else {
-            map.set(localItem[idKey], { ...localItem, ...remoteItem });
+    refreshFromSupabase();
+
+    // Traitement générique des événements Realtime pour les entités identifiées par `id`
+    function handleRealtimeEntityChange(setter, payload, idKey = 'id') {
+      const { eventType, new: newRec, old: oldRec } = payload;
+      setter((prev) => {
+        if (eventType === 'INSERT') {
+          if (!newRec || !newRec[idKey]) return prev;
+          if (prev.some((item) => item[idKey] === newRec[idKey])) {
+            return prev.map((item) => (item[idKey] === newRec[idKey] ? { ...item, ...newRec } : item));
           }
+          return [newRec, ...prev];
         }
+        if (eventType === 'UPDATE') {
+          if (!newRec || !newRec[idKey]) return prev;
+          const exists = prev.some((item) => item[idKey] === newRec[idKey]);
+          if (exists) {
+            return prev.map((item) => (item[idKey] === newRec[idKey] ? { ...item, ...newRec } : item));
+          }
+          return [newRec, ...prev];
+        }
+        if (eventType === 'DELETE') {
+          if (!oldRec || !oldRec[idKey]) return prev;
+          return prev.filter((item) => item[idKey] !== oldRec[idKey]);
+        }
+        return prev;
       });
-      return Array.from(map.values());
     }
 
-    async function hydrateFromSupabase() {
-      try {
-        const [
-          profRes,
-          modRes,
-          umRes,
-          tiersRes,
-          comRes,
-          artRes,
-          intRes,
-          mvtRes,
-          prestRes,
-          commRes
-        ] = await Promise.all([
-          supabase.from('profiles').select('*'),
-          supabase.from('modules').select('*'),
-          supabase.from('user_modules').select('*'),
-          supabase.from('clients_fournisseurs').select('*'),
-          supabase.from('agents_commerciaux').select('*'),
-          supabase.from('catalogue_articles').select('*'),
-          supabase.from('interventions_maintenance').select('*'),
-          supabase.from('mouvements_caisse').select('*'),
-          supabase.from('prestations_commandes').select('*'),
-          supabase.from('commissions').select('*')
-        ]);
-
-        if (!isMounted) return;
-
-        if (profRes.data && profRes.data.length > 0) {
-          setProfiles((prev) => mergeEntities(profRes.data, prev, 'id'));
-        }
-
-        if (modRes.data && modRes.data.length > 0) {
-          setModules(modRes.data);
-        }
-
-        if (umRes.data && umRes.data.length > 0) {
-          setUserModules((prev) => {
-            const map = new Map();
-            umRes.data.forEach((um) => map.set(`${um.user_id}_${um.module_id}`, um));
-            prev.forEach((um) => {
-              const key = `${um.user_id}_${um.module_id}`;
-              if (!map.has(key)) map.set(key, um);
-            });
-            return Array.from(map.values());
+    // Souscription en temps réel aux 10 tables PostgreSQL de l'ERP
+    const channel = supabase
+      .channel('erp-realtime-all-modules')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        (payload) => handleRealtimeEntityChange(setProfiles, payload, 'id')
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'modules' },
+        (payload) => {
+          const { eventType, new: newRec, old: oldRec } = payload;
+          setModules((prev) => {
+            if (eventType === 'INSERT' || eventType === 'UPDATE') {
+              if (!newRec) return prev;
+              const idx = prev.findIndex((m) => m.id === newRec.id || m.code_module === newRec.code_module);
+              if (idx >= 0) {
+                const copy = [...prev];
+                copy[idx] = { ...copy[idx], ...newRec };
+                return copy;
+              }
+              return [...prev, newRec];
+            }
+            if (eventType === 'DELETE') {
+              if (!oldRec) return prev;
+              return prev.filter((m) => m.id !== oldRec.id && m.code_module !== oldRec.code_module);
+            }
+            return prev;
           });
         }
-
-        if (tiersRes.data && tiersRes.data.length > 0) {
-          setClientsFournisseurs((prev) => mergeEntities(tiersRes.data, prev, 'id'));
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'user_modules' },
+        (payload) => {
+          const { eventType, new: newRec, old: oldRec } = payload;
+          setUserModules((prev) => {
+            if (eventType === 'INSERT' || eventType === 'UPDATE') {
+              if (!newRec) return prev;
+              const idx = prev.findIndex(
+                (um) => (newRec.id && um.id === newRec.id) || (um.user_id === newRec.user_id && um.module_id === newRec.module_id)
+              );
+              if (idx >= 0) {
+                const copy = [...prev];
+                copy[idx] = { ...copy[idx], ...newRec };
+                return copy;
+              }
+              return [...prev, newRec];
+            }
+            if (eventType === 'DELETE') {
+              if (!oldRec) return prev;
+              return prev.filter(
+                (um) => !(oldRec.id ? um.id === oldRec.id : (um.user_id === oldRec.user_id && um.module_id === oldRec.module_id))
+              );
+            }
+            return prev;
+          });
         }
-
-        if (comRes.data && comRes.data.length > 0) {
-          setAgentsCommerciaux((prev) => mergeEntities(comRes.data, prev, 'id'));
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'clients_fournisseurs' },
+        (payload) => handleRealtimeEntityChange(setClientsFournisseurs, payload, 'id')
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'agents_commerciaux' },
+        (payload) => handleRealtimeEntityChange(setAgentsCommerciaux, payload, 'id')
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'catalogue_articles' },
+        (payload) => handleRealtimeEntityChange(setArticles, payload, 'id')
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'interventions_maintenance' },
+        (payload) => handleRealtimeEntityChange(setInterventions, payload, 'id')
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'mouvements_caisse' },
+        (payload) => handleRealtimeEntityChange(setMouvements, payload, 'id')
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'prestations_commandes' },
+        (payload) => handleRealtimeEntityChange(setPrestations, payload, 'id')
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'commissions' },
+        (payload) => handleRealtimeEntityChange(setCommissions, payload, 'id')
+      )
+      .subscribe((status) => {
+        if (!isMounted) return;
+        setRealtimeStatus(status);
+        if (status === 'SUBSCRIBED') {
+          setIsSupabaseOnline(true);
         }
-
-        if (artRes.data && artRes.data.length > 0) {
-          setArticles((prev) => mergeEntities(artRes.data, prev, 'id'));
-        }
-
-        if (intRes.data && intRes.data.length > 0) {
-          setInterventions((prev) => mergeEntities(intRes.data, prev, 'id'));
-        }
-
-        if (mvtRes.data && mvtRes.data.length > 0) {
-          setMouvements((prev) => mergeEntities(mvtRes.data, prev, 'id'));
-        }
-
-        if (prestRes.data && prestRes.data.length > 0) {
-          setPrestations((prev) => mergeEntities(prestRes.data, prev, 'id'));
-        }
-
-        if (commRes.data && commRes.data.length > 0) {
-          setCommissions((prev) => mergeEntities(commRes.data, prev, 'id'));
-        }
-      } catch (err) {
-        console.warn('Supabase hydration error:', err);
-      }
-    }
-
-    hydrateFromSupabase();
+      });
 
     return () => {
       isMounted = false;
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, []);
 
@@ -1284,7 +1423,10 @@ export function ErpDataProvider({ children }) {
         updatePrestation,
         deletePrestation,
         encaisserPrestation,
-        resetAllData
+        resetAllData,
+        realtimeStatus,
+        isSupabaseOnline,
+        refreshFromSupabase
       }}
     >
       {children}
