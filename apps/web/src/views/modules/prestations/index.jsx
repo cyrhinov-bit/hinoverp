@@ -97,6 +97,7 @@ export default function PrestationsModule() {
   const [simulQte, setSimulQte] = useState(1);
   const [simulCoutUnit, setSimulCoutUnit] = useState(400000);
   const [simulPrixUnit, setSimulPrixUnit] = useState(1000000);
+  const [simulTauxApporteur, setSimulTauxApporteur] = useState(10);
   const [simulCommApporteur, setSimulCommApporteur] = useState(100000);
   const [simulCommCommercial, setSimulCommCommercial] = useState(50000);
   const [simulCommResponsable, setSimulCommResponsable] = useState(25000);
@@ -121,7 +122,8 @@ export default function PrestationsModule() {
     simulPrixUnit,
     simulCommApporteur,
     simulCommResponsable,
-    simulCommCommercial
+    simulCommCommercial,
+    simulTauxApporteur
   );
 
   // Calcul instantané des 11 colonnes pour le formulaire actif
@@ -173,7 +175,7 @@ export default function PrestationsModule() {
     }));
   };
 
-  // Recalcul lors du changement de taux apporteur
+  // Recalcul lors du changement de taux apporteur (%)
   const handleApporteurTauxChange = (taux, isEdit = false) => {
     const current = isEdit ? editFormData : formData;
     const setter = isEdit ? setEditFormData : setFormData;
@@ -187,6 +189,23 @@ export default function PrestationsModule() {
       ...prev,
       commission_apporteur_taux: t,
       commission_apporteur_montant: String(autoCommApp)
+    }));
+  };
+
+  // Recalcul inverse lors de la saisie manuelle du montant de commission apporteur
+  const handleApporteurMontantChange = (montantVal, isEdit = false) => {
+    const current = isEdit ? editFormData : formData;
+    const setter = isEdit ? setEditFormData : setFormData;
+    const qte = Number(current.quantite) || 1;
+    const pu = Number(current.prix_unitaire_vente) || 0;
+    const totalVente = qte * pu;
+    const m = Number(montantVal) || 0;
+    const dynamicTaux = totalVente > 0 ? Number(((m / totalVente) * 100).toFixed(1)) : (Number(current.commission_apporteur_taux) || 10);
+
+    setter((prev) => ({
+      ...prev,
+      commission_apporteur_montant: montantVal,
+      commission_apporteur_taux: dynamicTaux
     }));
   };
 
@@ -713,7 +732,7 @@ export default function PrestationsModule() {
         sx={{ mb: 3 }}
       >
         <Grid container spacing={2} alignItems="center">
-          <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 1.5 }}>
             <BsbTextField
               label="Quantité"
               type="number"
@@ -721,11 +740,11 @@ export default function PrestationsModule() {
               onChange={(e) => {
                 const q = Math.max(1, Number(e.target.value) || 1);
                 setSimulQte(q);
-                setSimulCommApporteur(Math.round(q * simulPrixUnit * 0.10));
+                setSimulCommApporteur(Math.round(q * simulPrixUnit * (simulTauxApporteur / 100)));
               }}
             />
           </Grid>
-          <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 1.8 }}>
             <BsbTextField
               label="Coût Unit. Achat"
               type="number"
@@ -733,7 +752,7 @@ export default function PrestationsModule() {
               onChange={(e) => setSimulCoutUnit(Number(e.target.value))}
             />
           </Grid>
-          <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 1.8 }}>
             <BsbTextField
               label="Prix Vente Unit."
               type="number"
@@ -741,19 +760,38 @@ export default function PrestationsModule() {
               onChange={(e) => {
                 const pu = Number(e.target.value);
                 setSimulPrixUnit(pu);
-                setSimulCommApporteur(Math.round(simulQte * pu * 0.10));
+                setSimulCommApporteur(Math.round(simulQte * pu * (simulTauxApporteur / 100)));
               }}
             />
           </Grid>
-          <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+          <Grid size={{ xs: 6, sm: 3, md: 1.4 }}>
             <BsbTextField
-              label="Comm. Apporteur (10%)"
+              label="Taux Apporteur (%)"
               type="number"
-              value={simulCommApporteur}
-              onChange={(e) => setSimulCommApporteur(Number(e.target.value))}
+              value={simulTauxApporteur}
+              onChange={(e) => {
+                const t = Number(e.target.value) || 0;
+                setSimulTauxApporteur(t);
+                setSimulCommApporteur(Math.round(simulQte * simulPrixUnit * (t / 100)));
+              }}
             />
           </Grid>
-          <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+          <Grid size={{ xs: 6, sm: 3, md: 1.8 }}>
+            <BsbTextField
+              label="Comm. Apporteur (FCFA)"
+              type="number"
+              value={simulCommApporteur}
+              onChange={(e) => {
+                const m = Number(e.target.value) || 0;
+                setSimulCommApporteur(m);
+                const total = simulQte * simulPrixUnit;
+                if (total > 0) {
+                  setSimulTauxApporteur(Number(((m / total) * 100).toFixed(1)));
+                }
+              }}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 1.8 }}>
             <BsbTextField
               label="Comm. Resp. Service"
               type="number"
@@ -761,7 +799,7 @@ export default function PrestationsModule() {
               onChange={(e) => setSimulCommResponsable(Number(e.target.value))}
             />
           </Grid>
-          <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 1.9 }}>
             <BsbTextField
               label="Comm. Commercial"
               type="number"
@@ -993,7 +1031,7 @@ export default function PrestationsModule() {
               label="8. COMMISSION APPORTEUR (FCFA)"
               type="number"
               value={formData.commission_apporteur_montant}
-              onChange={(e) => setFormData({ ...formData, commission_apporteur_montant: e.target.value })}
+              onChange={(e) => handleApporteurMontantChange(e.target.value, false)}
               helperText="Calculé automatiquement selon le taux (modifiable)"
             />
           </Grid>
@@ -1230,7 +1268,8 @@ export default function PrestationsModule() {
               label="8. COMMISSION APPORTEUR (FCFA)"
               type="number"
               value={editFormData.commission_apporteur_montant}
-              onChange={(e) => setEditFormData({ ...editFormData, commission_apporteur_montant: e.target.value })}
+              onChange={(e) => handleApporteurMontantChange(e.target.value, true)}
+              helperText="Calculé automatiquement selon le taux (modifiable)"
             />
           </Grid>
 
