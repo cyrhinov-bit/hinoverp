@@ -17,6 +17,22 @@ import {
 } from '@hinov/core';
 import { useAuth } from 'context/AuthContext';
 
+function generateUUID() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+function isValidUUID(str) {
+  if (!str || typeof str !== 'string') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str.trim());
+}
+
 const defaultErpDataContext = {
   profiles: INITIAL_PROFILES,
   modules: INITIAL_MODULES,
@@ -59,6 +75,7 @@ const defaultErpDataContext = {
   addPrestation: () => {},
   updatePrestation: () => {},
   deletePrestation: () => {},
+  encaisserPrestation: () => {},
   resetAllData: () => {}
 };
 
@@ -534,8 +551,8 @@ export function ErpDataProvider({ children }) {
   const addClientFournisseur = async (item) => {
     const newItem = {
       ...item,
-      id: item.id || `tier-${Date.now()}`,
-      cree_par: item.cree_par || currentUser?.id || 'usr-admin-1',
+      id: isValidUUID(item.id) ? item.id : generateUUID(),
+      cree_par: isValidUUID(item.cree_par) ? item.cree_par : (isValidUUID(currentUser?.id) ? currentUser.id : null),
       cree_par_nom: item.cree_par_nom || currentUser?.nom || currentUser?.email || 'Utilisateur',
       created_at: item.created_at || new Date().toISOString()
     };
@@ -593,7 +610,7 @@ export function ErpDataProvider({ children }) {
   const addAgentCommercial = async (agent) => {
     const newAgent = {
       ...agent,
-      id: agent.id || `com-${Date.now()}`,
+      id: isValidUUID(agent.id) ? agent.id : generateUUID(),
       matricule: agent.matricule || `COM-${String(agentsCommerciaux.length + 1).padStart(3, '0')}`,
       total_ventes: Number(agent.total_ventes) || 0,
       total_commissions_dues: Number(agent.total_commissions_dues) || 0,
@@ -643,7 +660,10 @@ export function ErpDataProvider({ children }) {
   const addCommission = async (comm) => {
     const newComm = {
       ...comm,
-      id: comm.id || `comm-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      id: isValidUUID(comm.id) ? comm.id : generateUUID(),
+      prestation_id: isValidUUID(comm.prestation_id) ? comm.prestation_id : null,
+      beneficiaire_id: isValidUUID(comm.beneficiaire_id) ? comm.beneficiaire_id : null,
+      mouvement_caisse_id: isValidUUID(comm.mouvement_caisse_id) ? comm.mouvement_caisse_id : null,
       created_at: new Date().toISOString()
     };
     setCommissions(prev => [newComm, ...prev]);
@@ -903,17 +923,22 @@ export function ErpDataProvider({ children }) {
       commAppTaux
     );
 
-    const prestId = prest.id || `prest-${Date.now()}`;
+    const prestId = isValidUUID(prest.id) ? prest.id : generateUUID();
     const prestRef = prest.reference || `CMD-${new Date().getFullYear()}-${String(prestations.length + 1).padStart(3, '0')}`;
     const designation = prest.designation || prest.description || '';
+    const commercialId = prest.commercial_id || prest.agent_commercial_id;
 
     const newPrest = {
       ...prest,
       id: prestId,
-      client_id: prest.client_id && String(prest.client_id).trim() !== '' ? prest.client_id : null,
-      agent_commercial_id: prest.agent_commercial_id && String(prest.agent_commercial_id).trim() !== '' ? prest.agent_commercial_id : null,
-      apporteur_id: prest.apporteur_id && String(prest.apporteur_id).trim() !== '' ? prest.apporteur_id : null,
-      responsable_service_id: prest.responsable_service_id && String(prest.responsable_service_id).trim() !== '' ? prest.responsable_service_id : null,
+      client_id: isValidUUID(prest.client_id) ? prest.client_id : null,
+      client_nom: prest.client_nom || null,
+      commercial_id: isValidUUID(commercialId) ? commercialId : null,
+      commercial_nom: prest.commercial_nom || null,
+      apporteur_id: isValidUUID(prest.apporteur_id) ? prest.apporteur_id : null,
+      apporteur_nom: prest.apporteur_nom || null,
+      responsable_service_id: isValidUUID(prest.responsable_service_id) ? prest.responsable_service_id : null,
+      responsable_service_nom: prest.responsable_service_nom || null,
       reference: prestRef,
       designation: designation,
       description: designation,
@@ -930,7 +955,8 @@ export function ErpDataProvider({ children }) {
       commission_commercial_montant: calc.commissionCommercial,
       benefice_reel: calc.beneficeReel,
       marge_nette: calc.beneficeReel,
-      created_at: new Date().toISOString(),
+      statut: prest.statut || 'CONFIRMEE',
+      created_at: prest.created_at || new Date().toISOString(),
       date_commande: prest.date_commande || new Date().toISOString()
     };
 
@@ -939,19 +965,19 @@ export function ErpDataProvider({ children }) {
     // Génération automatique des fiches de commission (3 types de commissions)
     const generatedCommissions = [];
 
-    // 1. Commission Apporteur d'affaires (10% auto)
+    // 1. Commission Apporteur d'affaires
     if (calc.commissionApporteur > 0) {
       generatedCommissions.push({
-        id: `comm-${Date.now()}-app`,
+        id: generateUUID(),
         prestation_id: prestId,
         prestation_ref: prestRef,
         type: 'APPORTEUR',
-        beneficiaire_id: (prest.apporteur_id && String(prest.apporteur_id).trim() !== '') ? prest.apporteur_id : null,
-        beneficiaire_nom: prest.apporteur_nom || 'Apporteur d\'affaires',
+        beneficiaire_id: isValidUUID(prest.apporteur_id) ? prest.apporteur_id : null,
+        beneficiaire_nom: prest.apporteur_nom || "Apporteur d'affaires",
         montant_prestation: calc.prixClientFinal,
         taux_pourcentage: commAppTaux,
         montant_commission: calc.commissionApporteur,
-        statut: 'A_VALIDER',
+        statut: (prest.statut === 'FACTUREE' || prest.statut === 'PAYEE') ? 'A_PAYER' : 'A_VALIDER',
         created_at: new Date().toISOString()
       });
     }
@@ -959,11 +985,11 @@ export function ErpDataProvider({ children }) {
     // 2. Commission Agent Commercial
     if (calc.commissionCommercial > 0) {
       generatedCommissions.push({
-        id: `comm-${Date.now()}-com`,
+        id: generateUUID(),
         prestation_id: prestId,
         prestation_ref: prestRef,
         type: 'AGENT_COMMERCIAL',
-        beneficiaire_id: (prest.commercial_id && String(prest.commercial_id).trim() !== '') ? prest.commercial_id : null,
+        beneficiaire_id: isValidUUID(commercialId) ? commercialId : null,
         beneficiaire_nom: prest.commercial_nom || 'Agent Commercial',
         montant_prestation: calc.prixClientFinal,
         montant_commission: calc.commissionCommercial,
@@ -975,11 +1001,11 @@ export function ErpDataProvider({ children }) {
     // 3. Commission Responsable de Service
     if (calc.commissionResponsable > 0) {
       generatedCommissions.push({
-        id: `comm-${Date.now()}-resp`,
+        id: generateUUID(),
         prestation_id: prestId,
         prestation_ref: prestRef,
         type: 'RESPONSABLE',
-        beneficiaire_id: (prest.responsable_service_id && String(prest.responsable_service_id).trim() !== '') ? prest.responsable_service_id : null,
+        beneficiaire_id: isValidUUID(prest.responsable_service_id) ? prest.responsable_service_id : null,
         beneficiaire_nom: prest.responsable_service_nom || 'Responsable de Service',
         montant_prestation: calc.prixClientFinal,
         montant_commission: calc.commissionResponsable,
@@ -995,9 +1021,11 @@ export function ErpDataProvider({ children }) {
     const supabase = getSupabaseClient();
     if (supabase) {
       try {
-        await supabase.from('prestations_commandes').upsert([newPrest]);
+        const { error: pErr } = await supabase.from('prestations_commandes').upsert([newPrest]);
+        if (pErr) console.error('Supabase add prestation error:', pErr);
         if (generatedCommissions.length > 0) {
-          await supabase.from('commissions').upsert(generatedCommissions);
+          const { error: cErr } = await supabase.from('commissions').upsert(generatedCommissions);
+          if (cErr) console.error('Supabase add commissions error:', cErr);
         }
       } catch (err) {
         console.warn('Supabase add prestation & commissions:', err);
@@ -1023,11 +1051,18 @@ export function ErpDataProvider({ children }) {
           qte,
           coutUnit,
           prixUnit,
-          merged.commission_apporteur_montant !== undefined ? Number(merged.commission_apporteur_montant) : null,
+          merged.commission_apporteur_montant !== undefined && merged.commission_apporteur_montant !== '' ? Number(merged.commission_apporteur_montant) : null,
           Number(merged.commission_responsable_montant) || 0,
           Number(merged.commission_commercial_montant) || 0,
           commAppTaux
         );
+
+        const commercialId = merged.commercial_id || merged.agent_commercial_id;
+
+        merged.client_id = isValidUUID(merged.client_id) ? merged.client_id : null;
+        merged.commercial_id = isValidUUID(commercialId) ? commercialId : null;
+        merged.apporteur_id = isValidUUID(merged.apporteur_id) ? merged.apporteur_id : null;
+        merged.responsable_service_id = isValidUUID(merged.responsable_service_id) ? merged.responsable_service_id : null;
 
         merged.quantite = calc.quantite;
         merged.cout_unitaire_achat = calc.coutUnitaireAchat;
@@ -1036,6 +1071,7 @@ export function ErpDataProvider({ children }) {
         merged.montant_total_vente = calc.prixClientFinal;
         merged.marge_interne = calc.margeInterne;
         merged.marge_brute = calc.margeInterne;
+        merged.commission_apporteur_taux = commAppTaux;
         merged.commission_apporteur_montant = calc.commissionApporteur;
         merged.commission_responsable_montant = calc.commissionResponsable;
         merged.commission_commercial_montant = calc.commissionCommercial;
@@ -1047,10 +1083,48 @@ export function ErpDataProvider({ children }) {
       return p;
     }));
 
+    // Mettre à jour les fiches de commission associées
+    if (updatedObj) {
+      setCommissions(prev => prev.map(c => {
+        if (c.prestation_id === id) {
+          if (c.type === 'APPORTEUR') {
+            return {
+              ...c,
+              montant_prestation: updatedObj.montant_total_vente,
+              montant_commission: updatedObj.commission_apporteur_montant,
+              taux_pourcentage: updatedObj.commission_apporteur_taux,
+              beneficiaire_id: updatedObj.apporteur_id,
+              beneficiaire_nom: updatedObj.apporteur_nom || c.beneficiaire_nom
+            };
+          }
+          if (c.type === 'AGENT_COMMERCIAL') {
+            return {
+              ...c,
+              montant_prestation: updatedObj.montant_total_vente,
+              montant_commission: updatedObj.commission_commercial_montant,
+              beneficiaire_id: updatedObj.commercial_id,
+              beneficiaire_nom: updatedObj.commercial_nom || c.beneficiaire_nom
+            };
+          }
+          if (c.type === 'RESPONSABLE') {
+            return {
+              ...c,
+              montant_prestation: updatedObj.montant_total_vente,
+              montant_commission: updatedObj.commission_responsable_montant,
+              beneficiaire_id: updatedObj.responsable_service_id,
+              beneficiaire_nom: updatedObj.responsable_service_nom || c.beneficiaire_nom
+            };
+          }
+        }
+        return c;
+      }));
+    }
+
     const supabase = getSupabaseClient();
     if (supabase && updatedObj) {
       try {
-        await supabase.from('prestations_commandes').update(updatedObj).eq('id', id);
+        const { error } = await supabase.from('prestations_commandes').update(updatedObj).eq('id', id);
+        if (error) console.error('Supabase update prestation error:', error);
       } catch (err) {
         console.warn('Supabase update prestation:', err);
       }
@@ -1069,6 +1143,52 @@ export function ErpDataProvider({ children }) {
         console.warn('Supabase delete prestation:', err);
       }
     }
+  };
+
+  // Action : Encaisser une prestation payée par un client (génère une entrée de caisse)
+  const encaisserPrestation = async (prestationId, modeReglement = 'ESPECES') => {
+    const prest = prestations.find(p => p.id === prestationId);
+    if (!prest) return;
+
+    const mvtId = generateUUID();
+    const now = new Date().toISOString();
+
+    // 1. Mettre à jour le statut de la prestation
+    await updatePrestation(prestationId, { 
+      statut: 'PAYEE'
+    });
+
+    // 2. Générer l'écriture d'encaissement de caisse
+    const newMvt = {
+      id: mvtId,
+      type: 'ENTREE',
+      montant: Number(prest.montant_total_vente) || 0,
+      motif: `Encaissement prestation ${prest.reference} - ${prest.client_nom || prest.designation || 'Client'}`,
+      categorie: 'PRESTATION',
+      module_code: 'PRESTATIONS',
+      beneficiaire_emetteur: prest.client_nom || 'Client',
+      tier_id: isValidUUID(prest.client_id) ? prest.client_id : null,
+      tier_type: 'CLIENT',
+      tier_nom: prest.client_nom || null,
+      prestation_id: isValidUUID(prest.id) ? prest.id : null,
+      mode_reglement: modeReglement,
+      date: now,
+      created_at: now
+    };
+    await addMouvement(newMvt);
+
+    // 3. Valider automatiquement les commissions associées en 'A_PAYER' si elles étaient 'A_VALIDER'
+    setCommissions(prev => prev.map(c => {
+      if (c.prestation_id === prestationId && c.statut === 'A_VALIDER') {
+        const updated = { ...c, statut: 'A_PAYER' };
+        const supabase = getSupabaseClient();
+        if (supabase) {
+          supabase.from('commissions').update({ statut: 'A_PAYER' }).eq('id', c.id).then();
+        }
+        return updated;
+      }
+      return c;
+    }));
   };
 
   const resetAllData = () => {
@@ -1138,6 +1258,7 @@ export function ErpDataProvider({ children }) {
         addPrestation,
         updatePrestation,
         deletePrestation,
+        encaisserPrestation,
         resetAllData
       }}
     >

@@ -7,6 +7,9 @@ dist/
 build/
 .output/
 .turbo/
+release-builds/
+dist-electron-packages/
+dist-electron/
 
 # Environment files
 .env

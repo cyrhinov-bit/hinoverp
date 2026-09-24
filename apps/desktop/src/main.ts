@@ -113,6 +113,36 @@ function createWindow() {
 ipcMain.handle('app:version', () => app.getVersion());
 ipcMain.handle('app:isPackaged', () => app.isPackaged);
 
+ipcMain.on('window-minimize', () => {
+  mainWindow?.minimize();
+});
+
+ipcMain.on('window-maximize', () => {
+  if (mainWindow?.isMaximized()) {
+    mainWindow.unmaximize();
+  } else {
+    mainWindow?.maximize();
+  }
+});
+
+ipcMain.on('window-close', () => {
+  mainWindow?.close();
+});
+
+ipcMain.handle('window-is-maximized', () => {
+  return mainWindow?.isMaximized() ?? false;
+});
+
+ipcMain.on('window-print', () => {
+  mainWindow?.webContents.print();
+});
+
+ipcMain.on('show-notification', (_event, { title, body }) => {
+  if (Notification.isSupported()) {
+    new Notification({ title: title || 'Hinov ERP', body: body || '' }).show();
+  }
+});
+
 ipcMain.on('app:notify', (_event, { title, body }) => {
   if (Notification.isSupported()) {
     new Notification({ title: title || 'Hinov ERP', body: body || '' }).show();

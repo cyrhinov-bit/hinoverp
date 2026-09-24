@@ -8,7 +8,12 @@
   "scripts": {
     "dev": "tsc && electron .",
     "dev:live": "concurrently \"pnpm --filter @hinov/web dev\" \"wait-on http://localhost:3000 && tsc && cross-env VITE_DEV_SERVER_URL=http://localhost:3000 electron .\"",
-    "build": "tsc",
+    "build": "tsc && node -e \"const fs=require('fs'); if(fs.existsSync('../web/dist')) fs.cpSync('../web/dist', './dist', {recursive: true, force: true});\"",
+    "copy:web": "node -e \"const fs=require('fs'); fs.cpSync('../web/dist', './dist', {recursive: true, force: true});\"",
+    "prepack": "pnpm build",
+    "predist": "pnpm build",
+    "predist:win": "pnpm build",
+    "predist:portable": "pnpm build",
     "pack": "electron-builder --dir",
     "dist": "electron-builder --win nsis --x64",
     "dist:win": "electron-builder --win nsis --x64",
@@ -22,7 +27,7 @@
     },
     "files": [
       "dist-electron/**/*",
-      "../web/dist/**/*"
+      "dist/**/*"
     ],
     "win": {
       "target": [

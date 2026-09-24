@@ -9,8 +9,13 @@ import '@fontsource/poppins/500.css';
 import '@fontsource/poppins/600.css';
 import '@fontsource/poppins/700.css';
 
-// Enregistrement PWA avec vérification et rechargement automatique immédiat
-if (typeof window !== 'undefined' && 'serviceWorker' in navigator && !window.location.host.includes('localhost')) {
+// Enregistrement PWA uniquement en contexte Web HTTP/HTTPS (pas en environnement Electron file://)
+if (
+  typeof window !== 'undefined' &&
+  'serviceWorker' in navigator &&
+  window.location.protocol.startsWith('http') &&
+  !window.location.host.includes('localhost')
+) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register('/sw.js')
