@@ -5,10 +5,11 @@ import {
   Typography,
   Chip,
   Stack,
-  Alert,
   IconButton,
   Tooltip,
-  Paper
+  Paper,
+  TableRow,
+  TableCell
 } from '@mui/material';
 
 import {
@@ -31,27 +32,73 @@ import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import EditIcon from '@mui/icons-material/Edit';
 import BusinessIcon from '@mui/icons-material/Business';
 import StoreIcon from '@mui/icons-material/Store';
 import PercentIcon from '@mui/icons-material/Percent';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import SecurityIcon from '@mui/icons-material/Security';
 
+// Catégories de dépenses et de recettes standardisées
+const CATEGORIES_SORTIE = [
+  { value: 'ACHATS', label: 'Achats Fournisseurs & Matériels' },
+  { value: 'FRAIS_GENERAUX', label: 'Frais Généraux & Fournitures' },
+  { value: 'LOYER', label: 'Loyer & Charges Locatives' },
+  { value: 'CARBURANT', label: 'Carburant & Déplacements' },
+  { value: 'ELECTRICITE_EAU', label: 'Utilités (CIE / SODECI / Internet)' },
+  { value: 'SALAIRES', label: 'Salaires, Primes & Avances' },
+  { value: 'COMMISSION', label: 'Règlement de Commissions' },
+  { value: 'TRANSPORT', label: 'Transport & Logistique' },
+  { value: 'MAINTENANCE', label: 'Entretien & Réparations' },
+  { value: 'RESTAURATION', label: 'Missions & Restauration' },
+  { value: 'AUTRE', label: 'Autres Dépenses Diverses' }
+];
+
+const CATEGORIES_ENTREE = [
+  { value: 'PRESTATION', label: 'Encaissement Prestation / Vente' },
+  { value: 'ACOMPTE_CLIENT', label: 'Acompte Commande Client' },
+  { value: 'APPART_CAPITAL', label: 'Apport de Trésorerie / Capital' },
+  { value: 'REMBOURSEMENT', label: 'Remboursement Perçu' },
+  { value: 'AUTRE', label: 'Autres Recettes Diverses' }
+];
+
+const INITIAL_FORM_STATE = {
+  type: 'SORTIE',
+  montant: '',
+  motif: '',
+  categorie: 'ACHATS',
+  module_code: 'GENERAL',
+  tier_id: '',
+  tier_type: 'FOURNISSEUR',
+  tier_nom: '',
+  beneficiaire_emetteur: '',
+  mode_reglement: 'ESPECES',
+  date: ''
+};
+
 export default function CaisseModule() {
   const { currentUser, isAdmin } = useAuth();
-  const { hasModule, mouvements, clientsFournisseurs, addMouvement, deleteMouvement } = useErpData();
+  const { 
+    hasModule, 
+    mouvements, 
+    clientsFournisseurs, 
+    addMouvement, 
+    updateMouvement, 
+    deleteMouvement 
+  } = useErpData();
 
   const [openModal, setOpenModal] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [filterType, setFilterType] = useState('ALL');
   const [tierFilter, setTierFilter] = useState('ALL');
   const [moduleFilter, setModuleFilter] = useState('ALL');
+  const [dateFilter, setDateFilter] = useState('ALL');
 
-  // Confirmation Modal State: { mvt: Object } | null
+  // État suppression confirmée
   const [deleteConfirmMvt, setDeleteConfirmMvt] = useState(null);
 
-  // Droits d'accès aux modules pour l'utilisateur connecté (L'administrateur a une vue sur TOUT)
+  // Droits d'accès aux modules pour l'utilisateur connecté
   const canPrestations = isAdmin || hasModule('PRESTATIONS');
   const canMaintenance = isAdmin || hasModule('MAINTENANCE');
   const canStocks = isAdmin || hasModule('STOCKS');
@@ -63,7 +110,7 @@ export default function CaisseModule() {
   }, [clientsFournisseurs, currentUser]);
 
   const clients = useMemo(() => userScopedClientsFournisseurs.filter((t) => t.type === 'CLIENT'), [userScopedClientsFournisseurs]);
-  const fournisseurs = useMemo(() => userScopedClientsFournisseurs.filter((t) => t.type === 'FOURNISSEUR'), [userScopedClientsFournisseurs]);
+  const fournisseurs = useMemo(() => userScopedClientsFournisseurs.filter((t) => t.type === 'FOURNISSEUR' || t.type === 'PARTENAIRE'), [userScopedClientsFournisseurs]);
 
   // Options de modules disponibles pour la saisie selon les droits de l'utilisateur
   const availableModuleOptions = useMemo(() => {
@@ -89,31 +136,36 @@ export default function CaisseModule() {
     return opts;
   }, [isAdmin, canPrestations, canMaintenance, canStocks, canCommissions]);
 
+  // Formulaires Création & Édition
   const [formData, setFormData] = useState({
-    type: 'SORTIE',
-    montant: '',
-    motif: '',
-    categorie: 'ACHATS',
-    module_code: availableModuleOptions[0]?.value || 'GENERAL',
-    tier_id: '',
-    tier_type: 'FOURNISSEUR',
-    tier_nom: '',
-    beneficiaire_emetteur: '',
-    mode_reglement: 'ESPECES'
+    ...INITIAL_FORM_STATE,
+    module_code: availableModuleOptions[0]?.value || 'GENERAL'
   });
 
+  const [editFormData, setEditFormData] = useState(INITIAL_FORM_STATE);
 
+  // Contrôle de sécurité / Habilitation
+  if (!isAdmin && !hasModule('CAISSE_DEPENSES')) {
+    return (
+      <Box sx={{ p: 3, display: 'flex', justifyContent: 'center' }}>
+        <BsbCard title="Module Dépenses & Caisse Désactivé" sx={{ maxWidth: 550, textAlign: 'center' }}>
+          <LockOutlinedIcon sx={{ fontSize: 64, color: '#F44336', mb: 2 }} />
+          <Typography variant="body1" sx={{ color: '#666', mb: 3 }}>
+            L'administrateur a désactivé le module <strong>Dépenses & Caisse</strong> pour votre profil.
+          </Typography>
+        </BsbCard>
+      </Box>
+    );
+  }
 
   // 1. Filtrage cloisonné par habilitation de l'utilisateur
   const userScopedMouvements = useMemo(() => {
     if (isAdmin) {
-      return mouvements; // Vue globale consolidée pour l'admin
+      return mouvements;
     }
     return mouvements.filter((m) => {
-      // Écritures créées par l'utilisateur connecté
       if (m.cree_par && m.cree_par === currentUser?.id) return true;
 
-      // Écritures relatives aux modules autorisés
       const mod = m.module_code || m.categorie;
       if (mod === 'PRESTATIONS' && canPrestations) return true;
       if (mod === 'MAINTENANCE' && canMaintenance) return true;
@@ -121,7 +173,6 @@ export default function CaisseModule() {
       if (mod === 'COMMISSIONS' && canCommissions) return true;
       if (mod === 'GENERAL' && canCaisse) return true;
 
-      // Compatibilité ancienne si non renseigné
       return false;
     });
   }, [mouvements, isAdmin, currentUser, canPrestations, canMaintenance, canStocks, canCommissions, canCaisse]);
@@ -129,8 +180,11 @@ export default function CaisseModule() {
   // 2. Calcul des KPI sur le périmètre cloisonné de l'utilisateur
   const cashStats = calculateCashFlowStats(userScopedMouvements);
 
-  // 3. Filtrage UI supplémentaire (Tiers, Sens de flux, Module)
+  // 3. Filtrage UI supplémentaire (Tiers, Sens de flux, Module, Date)
   const filtered = useMemo(() => {
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+
     return userScopedMouvements.filter((m) => {
       const matchType = filterType === 'ALL' || m.type === filterType;
       const matchTier =
@@ -139,18 +193,52 @@ export default function CaisseModule() {
         m.tier_nom === tierFilter ||
         m.beneficiaire_emetteur === tierFilter;
       const matchModule = moduleFilter === 'ALL' || (m.module_code || m.categorie) === moduleFilter;
-      return matchType && matchTier && matchModule;
-    });
-  }, [userScopedMouvements, filterType, tierFilter, moduleFilter]);
 
-  const handleTierSelect = (tierId) => {
+      // Filtre de date
+      let matchDate = true;
+      if (dateFilter !== 'ALL' && m.date) {
+        const mDate = new Date(m.date);
+        const mDateStr = mDate.toISOString().slice(0, 10);
+        if (dateFilter === 'TODAY') {
+          matchDate = mDateStr === todayStr;
+        } else if (dateFilter === 'WEEK') {
+          const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          matchDate = mDate >= sevenDaysAgo;
+        } else if (dateFilter === 'MONTH') {
+          matchDate = mDate.getFullYear() === now.getFullYear() && mDate.getMonth() === now.getMonth();
+        }
+      }
+
+      return matchType && matchTier && matchModule && matchDate;
+    });
+  }, [userScopedMouvements, filterType, tierFilter, moduleFilter, dateFilter]);
+
+  // Totaux calculés pour le pied du tableau
+  const tableTotals = useMemo(() => {
+    return filtered.reduce(
+      (acc, m) => {
+        const amt = Number(m.montant) || 0;
+        if (m.type === 'ENTREE') {
+          acc.totalEntrees += amt;
+        } else {
+          acc.totalSorties += amt;
+        }
+        acc.soldeNet = acc.totalEntrees - acc.totalSorties;
+        return acc;
+      },
+      { totalEntrees: 0, totalSorties: 0, soldeNet: 0 }
+    );
+  }, [filtered]);
+
+  const handleTierSelect = (tierId, isEdit = false) => {
+    const setter = isEdit ? setEditFormData : setFormData;
     if (!tierId) {
-      setFormData((prev) => ({ ...prev, tier_id: '', tier_nom: '', tier_type: 'AUTRE' }));
+      setter((prev) => ({ ...prev, tier_id: '', tier_nom: '', tier_type: 'AUTRE' }));
       return;
     }
     const found = clientsFournisseurs.find((t) => t.id === tierId);
     if (found) {
-      setFormData((prev) => ({
+      setter((prev) => ({
         ...prev,
         tier_id: found.id,
         tier_type: found.type,
@@ -160,8 +248,9 @@ export default function CaisseModule() {
     }
   };
 
-  const handleTypeChange = (newType) => {
-    setFormData((prev) => ({
+  const handleTypeChange = (newType, isEdit = false) => {
+    const setter = isEdit ? setEditFormData : setFormData;
+    setter((prev) => ({
       ...prev,
       type: newType,
       categorie: newType === 'ENTREE' ? 'PRESTATION' : 'ACHATS',
@@ -172,6 +261,7 @@ export default function CaisseModule() {
     }));
   };
 
+  // Soumission Création
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.motif || !formData.montant) return;
@@ -180,24 +270,52 @@ export default function CaisseModule() {
       ...formData,
       montant: Number(formData.montant),
       module_code: formData.module_code || 'GENERAL',
-      cree_par: currentUser?.id || 'anonymous',
+      cree_par: currentUser?.id || null,
       cree_par_nom: currentUser?.nom || currentUser?.email || 'Utilisateur',
-      beneficiaire_emetteur: formData.beneficiaire_emetteur || formData.tier_nom || 'Non spécifié'
+      beneficiaire_emetteur: formData.beneficiaire_emetteur || formData.tier_nom || 'Interne / Caisse',
+      date: formData.date ? new Date(formData.date).toISOString() : new Date().toISOString()
     });
 
     setFormData({
-      type: 'SORTIE',
-      montant: '',
-      motif: '',
-      categorie: 'ACHATS',
-      module_code: availableModuleOptions[0]?.value || 'GENERAL',
-      tier_id: '',
-      tier_type: 'FOURNISSEUR',
-      tier_nom: '',
-      beneficiaire_emetteur: '',
-      mode_reglement: 'ESPECES'
+      ...INITIAL_FORM_STATE,
+      module_code: availableModuleOptions[0]?.value || 'GENERAL'
     });
     setOpenModal(false);
+  };
+
+  // Ouverture Modification
+  const handleOpenEdit = (m) => {
+    setEditFormData({
+      id: m.id,
+      type: m.type || 'SORTIE',
+      montant: String(m.montant || ''),
+      motif: m.motif || '',
+      categorie: m.categorie || (m.type === 'ENTREE' ? 'PRESTATION' : 'ACHATS'),
+      module_code: m.module_code || 'GENERAL',
+      tier_id: m.tier_id || '',
+      tier_type: m.tier_type || (m.type === 'ENTREE' ? 'CLIENT' : 'FOURNISSEUR'),
+      tier_nom: m.tier_nom || '',
+      beneficiaire_emetteur: m.beneficiaire_emetteur || '',
+      mode_reglement: m.mode_reglement || 'ESPECES',
+      date: m.date ? m.date.slice(0, 16) : new Date().toISOString().slice(0, 16)
+    });
+    setEditModalOpen(true);
+  };
+
+  // Soumission Modification
+  const handleEditSubmit = (e) => {
+    e.preventDefault();
+    if (!editFormData.id || !editFormData.motif || !editFormData.montant) return;
+
+    updateMouvement(editFormData.id, {
+      ...editFormData,
+      montant: Number(editFormData.montant),
+      module_code: editFormData.module_code || 'GENERAL',
+      beneficiaire_emetteur: editFormData.beneficiaire_emetteur || editFormData.tier_nom || 'Interne / Caisse',
+      date: editFormData.date ? new Date(editFormData.date).toISOString() : new Date().toISOString()
+    });
+
+    setEditModalOpen(false);
   };
 
   const handleConfirmDelete = () => {
@@ -210,13 +328,13 @@ export default function CaisseModule() {
   const getModeReglementChip = (mode) => {
     switch (mode) {
       case 'ESPECES':
-        return <Chip label="Espèces" size="small" sx={{ bgcolor: '#E8F5E9', color: '#2E7D32', fontWeight: 600, fontSize: '0.72rem', borderRadius: '2px' }} />;
+        return <Chip label="Espèces" size="small" sx={{ bgcolor: '#E8F5E9', color: '#2E7D32', fontWeight: 700, fontSize: '0.72rem', borderRadius: '2px' }} />;
       case 'MOBILE_MONEY':
-        return <Chip label="Mobile Money" size="small" sx={{ bgcolor: '#FFF3E0', color: '#E65100', fontWeight: 600, fontSize: '0.72rem', borderRadius: '2px' }} />;
+        return <Chip label="Mobile Money" size="small" sx={{ bgcolor: '#FFF3E0', color: '#E65100', fontWeight: 700, fontSize: '0.72rem', borderRadius: '2px' }} />;
       case 'CHEQUE':
-        return <Chip label="Chèque" size="small" sx={{ bgcolor: '#E3F2FD', color: '#1565C0', fontWeight: 600, fontSize: '0.72rem', borderRadius: '2px' }} />;
+        return <Chip label="Chèque" size="small" sx={{ bgcolor: '#E3F2FD', color: '#1565C0', fontWeight: 700, fontSize: '0.72rem', borderRadius: '2px' }} />;
       case 'VIREMENT':
-        return <Chip label="Virement" size="small" sx={{ bgcolor: '#F3E5F5', color: '#6A1B9A', fontWeight: 600, fontSize: '0.72rem', borderRadius: '2px' }} />;
+        return <Chip label="Virement" size="small" sx={{ bgcolor: '#F3E5F5', color: '#6A1B9A', fontWeight: 700, fontSize: '0.72rem', borderRadius: '2px' }} />;
       default:
         return <Chip label={mode || 'ESPECES'} size="small" sx={{ borderRadius: '2px' }} />;
     }
@@ -238,9 +356,15 @@ export default function CaisseModule() {
     }
   };
 
+  const getCategorieLabel = (catCode, type) => {
+    const list = type === 'ENTREE' ? CATEGORIES_ENTREE : CATEGORIES_SORTIE;
+    const found = list.find(c => c.value === catCode);
+    return found ? found.label : (catCode || 'Général');
+  };
+
   return (
     <Box sx={{ pb: 3 }}>
-      {/* Bannière de Périmètre (Vue Consolidée vs Caisse de Service) */}
+      {/* Bannière de Périmètre */}
       <Paper
         elevation={0}
         sx={{
@@ -339,7 +463,14 @@ export default function CaisseModule() {
             color="primary"
             size="sm"
             startIcon={<AddIcon />}
-            onClick={() => setOpenModal(true)}
+            onClick={() => {
+              setFormData({
+                ...INITIAL_FORM_STATE,
+                module_code: availableModuleOptions[0]?.value || 'GENERAL',
+                date: new Date().toISOString().slice(0, 16)
+              });
+              setOpenModal(true);
+            }}
           >
             Nouvelle Écriture
           </BsbButton>
@@ -348,7 +479,7 @@ export default function CaisseModule() {
         {/* Filtres de recherche */}
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" sx={{ mb: 2.5, flexWrap: 'wrap' }}>
           {/* Filtre par Module/Service */}
-          <Box sx={{ minWidth: 200 }}>
+          <Box sx={{ minWidth: 180 }}>
             <BsbSelect
               label="Service / Module"
               value={moduleFilter}
@@ -365,7 +496,7 @@ export default function CaisseModule() {
           </Box>
 
           {/* Filtre par Tiers */}
-          <Box sx={{ minWidth: 220 }}>
+          <Box sx={{ minWidth: 200 }}>
             <BsbSelect
               label="Filtrer par Tiers"
               value={tierFilter}
@@ -376,6 +507,21 @@ export default function CaisseModule() {
                   value: t.id,
                   label: `[${t.type === 'CLIENT' ? 'Client' : 'Fourn.'}] ${t.nom}`
                 }))
+              ]}
+            />
+          </Box>
+
+          {/* Filtre par Période */}
+          <Box sx={{ minWidth: 160 }}>
+            <BsbSelect
+              label="Période"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              options={[
+                { value: 'ALL', label: 'Toutes les dates' },
+                { value: 'TODAY', label: "Aujourd'hui" },
+                { value: 'WEEK', label: '7 derniers jours' },
+                { value: 'MONTH', label: 'Ce mois-ci' }
               ]}
             />
           </Box>
@@ -395,7 +541,7 @@ export default function CaisseModule() {
                 onClick={() => setFilterType(f.id)}
                 size="small"
                 sx={{
-                  fontWeight: 600,
+                  fontWeight: 700,
                   borderRadius: '2px',
                   bgcolor: filterType === f.id ? '#4CAF50' : '#eee',
                   color: filterType === f.id ? '#fff' : '#444'
@@ -482,14 +628,14 @@ export default function CaisseModule() {
             },
             {
               id: 'motif',
-              label: 'Motif / Justification',
+              label: 'Motif & Catégorie',
               render: (row) => (
                 <Box sx={{ maxWidth: 280 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#222', fontSize: '0.82rem' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#222', fontSize: '0.82rem' }}>
                     {row.motif}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: '#777', fontSize: '0.72rem', display: 'block' }}>
-                    Catégorie : {row.categorie || 'Général'}
+                  <Typography variant="caption" sx={{ color: '#0288D1', fontWeight: 600, fontSize: '0.72rem', display: 'block' }}>
+                    {getCategorieLabel(row.categorie, row.type)}
                   </Typography>
                 </Box>
               )
@@ -525,20 +671,49 @@ export default function CaisseModule() {
               label: 'Actions',
               align: 'center',
               render: (row) => (
-                <Tooltip title="Supprimer cette écriture">
-                  <IconButton
-                    size="small"
-                    sx={{ color: '#E53935', '&:hover': { bgcolor: '#FFEBEE' } }}
-                    onClick={() => setDeleteConfirmMvt(row)}
-                  >
-                    <DeleteOutlineIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+                <Stack direction="row" spacing={0.5} justifyContent="center">
+                  <Tooltip title="Modifier cette écriture">
+                    <IconButton
+                      size="small"
+                      sx={{ color: '#FFA000', '&:hover': { bgcolor: '#FFF8E1' } }}
+                      onClick={() => handleOpenEdit(row)}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Supprimer cette écriture">
+                    <IconButton
+                      size="small"
+                      sx={{ color: '#E53935', '&:hover': { bgcolor: '#FFEBEE' } }}
+                      onClick={() => setDeleteConfirmMvt(row)}
+                    >
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
               )
             }
           ]}
           data={filtered}
           emptyMessage="Aucune écriture de caisse trouvée pour votre périmètre."
+          footerRow={
+            <TableRow sx={{ bgcolor: '#f5f5f5', borderTop: '2px solid #333' }}>
+              <TableCell sx={{ fontWeight: 900, color: '#111' }} colSpan={2}>
+                TOTAUX SÉLECTION ({filtered.length} opérations)
+              </TableCell>
+              <TableCell align="center" sx={{ fontWeight: 900, color: '#2E7D32' }}>
+                +{formatCurrency(tableTotals.totalEntrees)}
+              </TableCell>
+              <TableCell align="center" sx={{ fontWeight: 900, color: '#C62828' }}>
+                -{formatCurrency(tableTotals.totalSorties)}
+              </TableCell>
+              <TableCell colSpan={2} />
+              <TableCell align="right" sx={{ fontWeight: 900, bgcolor: tableTotals.soldeNet >= 0 ? '#C8E6C9' : '#FFCDD2', color: tableTotals.soldeNet >= 0 ? '#1B5E20' : '#B71C1C' }}>
+                SOLDE : {formatCurrency(tableTotals.soldeNet)}
+              </TableCell>
+              <TableCell />
+            </TableRow>
+          }
         />
       </BsbCard>
 
@@ -626,7 +801,7 @@ export default function CaisseModule() {
                 <BsbSelect
                   label="Sens du Flux"
                   value={formData.type}
-                  onChange={(e) => handleTypeChange(e.target.value)}
+                  onChange={(e) => handleTypeChange(e.target.value, false)}
                   options={[
                     { value: 'SORTIE', label: 'Sortie / Dépense (-)' },
                     { value: 'ENTREE', label: 'Entrée / Recette (+)' }
@@ -636,16 +811,38 @@ export default function CaisseModule() {
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <BsbSelect
+                  label="Catégorie de Flux"
+                  value={formData.categorie}
+                  onChange={(e) => setFormData({ ...formData, categorie: e.target.value })}
+                  options={formData.type === 'ENTREE' ? CATEGORIES_ENTREE : CATEGORIES_SORTIE}
+                  required
+                />
+              </Grid>
+            </Grid>
+
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <BsbSelect
                   label="Mode de Règlement"
                   value={formData.mode_reglement}
                   onChange={(e) => setFormData({ ...formData, mode_reglement: e.target.value })}
                   options={[
-                    { value: 'ESPECES', label: 'Espèces' },
+                    { value: 'ESPECES', label: 'Espèces (Caisse)' },
                     { value: 'MOBILE_MONEY', label: 'Mobile Money (Wave / Orange)' },
                     { value: 'CHEQUE', label: 'Chèque Bancaire' },
                     { value: 'VIREMENT', label: 'Virement Bancaire' }
                   ]}
                   required
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <BsbTextField
+                  label="Montant de l'opération (FCFA)"
+                  type="number"
+                  required
+                  value={formData.montant}
+                  onChange={(e) => setFormData({ ...formData, montant: e.target.value })}
+                  placeholder="Ex: 50000"
                 />
               </Grid>
             </Grid>
@@ -654,12 +851,12 @@ export default function CaisseModule() {
             <BsbSelect
               label={formData.type === 'ENTREE' ? 'Client émetteur (Optionnel)' : 'Fournisseur / Bénéficiaire (Optionnel)'}
               value={formData.tier_id}
-              onChange={(e) => handleTierSelect(e.target.value)}
+              onChange={(e) => handleTierSelect(e.target.value, false)}
               options={[
                 { value: '', label: '-- Tiers non listé (saisie manuelle ci-dessous) --' },
                 ...(formData.type === 'ENTREE' ? clients : fournisseurs).map((t) => ({
                   value: t.id,
-                  label: `${t.nom} (${t.ville || 'Abidjan'})`
+                  label: `[${t.type === 'CLIENT' ? 'Client' : 'Fourn.'}] ${t.nom}`
                 }))
               ]}
             />
@@ -672,12 +869,115 @@ export default function CaisseModule() {
             />
 
             <BsbTextField
-              label="Montant de l'opération (FCFA)"
-              type="number"
+              label="Motif / Justification de l'écriture"
               required
-              value={formData.montant}
-              onChange={(e) => setFormData({ ...formData, montant: e.target.value })}
-              placeholder="Ex: 50000"
+              multiline
+              rows={2}
+              value={formData.motif}
+              onChange={(e) => setFormData({ ...formData, motif: e.target.value })}
+              placeholder="Ex: Achat disjoncteurs urgents, Carburant intervention..."
+            />
+          </Stack>
+        </form>
+      </BsbModal>
+
+      {/* Modal de modification d'écriture */}
+      <BsbModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        title="MODIFIER L'ÉCRITURE DE CAISSE"
+        headerColor="amber"
+        maxWidth="sm"
+        actions={
+          <>
+            <BsbButton color="secondary" onClick={() => setEditModalOpen(false)}>
+              Annuler
+            </BsbButton>
+            <BsbButton color="primary" onClick={handleEditSubmit}>
+              Enregistrer les modifications
+            </BsbButton>
+          </>
+        }
+      >
+        <form onSubmit={handleEditSubmit}>
+          <Stack spacing={2} sx={{ pt: 1 }}>
+            {/* Rattachement Module & Service */}
+            <BsbSelect
+              label="Module / Service concerné"
+              value={editFormData.module_code}
+              onChange={(e) => setEditFormData({ ...editFormData, module_code: e.target.value })}
+              options={availableModuleOptions}
+              required
+            />
+
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <BsbSelect
+                  label="Sens du Flux"
+                  value={editFormData.type}
+                  onChange={(e) => handleTypeChange(e.target.value, true)}
+                  options={[
+                    { value: 'SORTIE', label: 'Sortie / Dépense (-)' },
+                    { value: 'ENTREE', label: 'Entrée / Recette (+)' }
+                  ]}
+                  required
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <BsbSelect
+                  label="Catégorie de Flux"
+                  value={editFormData.categorie}
+                  onChange={(e) => setEditFormData({ ...editFormData, categorie: e.target.value })}
+                  options={editFormData.type === 'ENTREE' ? CATEGORIES_ENTREE : CATEGORIES_SORTIE}
+                  required
+                />
+              </Grid>
+            </Grid>
+
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <BsbSelect
+                  label="Mode de Règlement"
+                  value={editFormData.mode_reglement}
+                  onChange={(e) => setEditFormData({ ...editFormData, mode_reglement: e.target.value })}
+                  options={[
+                    { value: 'ESPECES', label: 'Espèces (Caisse)' },
+                    { value: 'MOBILE_MONEY', label: 'Mobile Money (Wave / Orange)' },
+                    { value: 'CHEQUE', label: 'Chèque Bancaire' },
+                    { value: 'VIREMENT', label: 'Virement Bancaire' }
+                  ]}
+                  required
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <BsbTextField
+                  label="Montant de l'opération (FCFA)"
+                  type="number"
+                  required
+                  value={editFormData.montant}
+                  onChange={(e) => setEditFormData({ ...editFormData, montant: e.target.value })}
+                />
+              </Grid>
+            </Grid>
+
+            {/* Sélecteur de tiers contextuel */}
+            <BsbSelect
+              label={editFormData.type === 'ENTREE' ? 'Client émetteur (Optionnel)' : 'Fournisseur / Bénéficiaire (Optionnel)'}
+              value={editFormData.tier_id}
+              onChange={(e) => handleTierSelect(e.target.value, true)}
+              options={[
+                { value: '', label: '-- Tiers non listé (saisie manuelle ci-dessous) --' },
+                ...(editFormData.type === 'ENTREE' ? clients : fournisseurs).map((t) => ({
+                  value: t.id,
+                  label: `[${t.type === 'CLIENT' ? 'Client' : 'Fourn.'}] ${t.nom}`
+                }))
+              ]}
+            />
+
+            <BsbTextField
+              label="Nom du Tiers / Bénéficiaire / Émetteur"
+              value={editFormData.beneficiaire_emetteur}
+              onChange={(e) => setEditFormData({ ...editFormData, beneficiaire_emetteur: e.target.value })}
             />
 
             <BsbTextField
@@ -685,9 +985,8 @@ export default function CaisseModule() {
               required
               multiline
               rows={2}
-              value={formData.motif}
-              onChange={(e) => setFormData({ ...formData, motif: e.target.value })}
-              placeholder="Ex: Règlement acompte prestation, Achat disjoncteurs urgents..."
+              value={editFormData.motif}
+              onChange={(e) => setEditFormData({ ...editFormData, motif: e.target.value })}
             />
           </Stack>
         </form>

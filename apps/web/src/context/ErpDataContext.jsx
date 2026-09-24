@@ -71,6 +71,7 @@ const defaultErpDataContext = {
   updateArticle: () => {},
   deleteArticle: () => {},
   addMouvement: () => {},
+  updateMouvement: () => {},
   deleteMouvement: () => {},
   addPrestation: () => {},
   updatePrestation: () => {},
@@ -870,20 +871,42 @@ export function ErpDataProvider({ children }) {
   const addMouvement = async (mvt) => {
     const newMvt = {
       ...mvt,
-      id: mvt.id || `mvt-${Date.now()}`,
+      id: isValidUUID(mvt.id) ? mvt.id : generateUUID(),
       tier_id: mvt.tier_id && String(mvt.tier_id).trim() !== '' ? mvt.tier_id : null,
       prestation_id: mvt.prestation_id && String(mvt.prestation_id).trim() !== '' ? mvt.prestation_id : null,
+      cree_par: mvt.cree_par && String(mvt.cree_par).trim() !== '' ? mvt.cree_par : null,
       montant: Number(mvt.montant) || 0,
-      created_at: new Date().toISOString(),
+      created_at: mvt.created_at || new Date().toISOString(),
       date: mvt.date || new Date().toISOString()
     };
     setMouvements(prev => [newMvt, ...prev]);
     const supabase = getSupabaseClient();
     if (supabase) {
       try {
-        await supabase.from('mouvements_caisse').upsert([newMvt]);
+        const { error } = await supabase.from('mouvements_caisse').upsert([newMvt]);
+        if (error) console.error('Supabase add mouvement error:', error);
       } catch (err) {
         console.warn('Supabase add mouvement:', err);
+      }
+    }
+  };
+
+  const updateMouvement = async (id, updates) => {
+    const cleanUpdates = {
+      ...updates,
+      ...(updates.montant !== undefined ? { montant: Number(updates.montant) || 0 } : {}),
+      ...(updates.tier_id !== undefined ? { tier_id: updates.tier_id && String(updates.tier_id).trim() !== '' ? updates.tier_id : null } : {}),
+      ...(updates.prestation_id !== undefined ? { prestation_id: updates.prestation_id && String(updates.prestation_id).trim() !== '' ? updates.prestation_id : null } : {}),
+      updated_at: new Date().toISOString()
+    };
+    setMouvements(prev => prev.map(m => m.id === id ? { ...m, ...cleanUpdates } : m));
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        const { error } = await supabase.from('mouvements_caisse').update(cleanUpdates).eq('id', id);
+        if (error) console.error('Supabase update mouvement error:', error);
+      } catch (err) {
+        console.warn('Supabase update mouvement:', err);
       }
     }
   };
@@ -893,7 +916,8 @@ export function ErpDataProvider({ children }) {
     const supabase = getSupabaseClient();
     if (supabase) {
       try {
-        await supabase.from('mouvements_caisse').delete().eq('id', id);
+        const { error } = await supabase.from('mouvements_caisse').delete().eq('id', id);
+        if (error) console.error('Supabase delete mouvement error:', error);
       } catch (err) {
         console.warn('Supabase delete mouvement:', err);
       }
@@ -1254,6 +1278,7 @@ export function ErpDataProvider({ children }) {
         updateArticle,
         deleteArticle,
         addMouvement,
+        updateMouvement,
         deleteMouvement,
         addPrestation,
         updatePrestation,
