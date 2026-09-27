@@ -89,17 +89,8 @@ export default function PrestationsModule() {
 
   // Formulaire nouvelle prestation (11 colonnes)
   const [formData, setFormData] = useState(INITIAL_FORM_STATE);
-
   // Formulaire modification prestation
   const [editFormData, setEditFormData] = useState(INITIAL_FORM_STATE);
-
-  // Simulateur de marge en direct (11 colonnes)
-  const [simulQte, setSimulQte] = useState(1);
-  const [simulCoutUnit, setSimulCoutUnit] = useState(400000);
-  const [simulPrixUnit, setSimulPrixUnit] = useState(1000000);
-  const [simulCommApporteur, setSimulCommApporteur] = useState(100000);
-  const [simulCommCommercial, setSimulCommCommercial] = useState(50000);
-  const [simulCommResponsable, setSimulCommResponsable] = useState(25000);
 
   if (!isAdmin && !hasModule('PRESTATIONS')) {
     return (
@@ -115,14 +106,6 @@ export default function PrestationsModule() {
   }
 
   const stats = calculatePrestationsStats(prestations);
-  const simulResult = calculatePrestationLine(
-    simulQte,
-    simulCoutUnit,
-    simulPrixUnit,
-    simulCommApporteur,
-    simulCommResponsable,
-    simulCommCommercial
-  );
 
   // Calcul instantané des 11 colonnes pour le formulaire actif
   const liveFormCalc = calculatePrestationLine(
@@ -705,110 +688,6 @@ export default function PrestationsModule() {
           />
         </Grid>
       </Grid>
-
-      {/* AdminBSB Card: Live Simulator */}
-      <BsbCard
-        title="SIMULATEUR INSTANTANÉ SELON LA GRILLE DES 11 COLONNES"
-        subtitle="Calculez la cascade financière en temps réel avant saisie"
-        sx={{ mb: 3 }}
-      >
-        <Grid container spacing={2} alignItems="center">
-          <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-            <BsbTextField
-              label="Quantité"
-              type="number"
-              value={simulQte}
-              onChange={(e) => {
-                const q = Math.max(1, Number(e.target.value) || 1);
-                setSimulQte(q);
-                setSimulCommApporteur(Math.round(q * simulPrixUnit * 0.10));
-              }}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-            <BsbTextField
-              label="Coût Unit. Achat"
-              type="number"
-              value={simulCoutUnit}
-              onChange={(e) => setSimulCoutUnit(Number(e.target.value))}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-            <BsbTextField
-              label="Prix Vente Unit."
-              type="number"
-              value={simulPrixUnit}
-              onChange={(e) => {
-                const pu = Number(e.target.value);
-                setSimulPrixUnit(pu);
-                setSimulCommApporteur(Math.round(simulQte * pu * 0.10));
-              }}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-            <BsbTextField
-              label="Comm. Apporteur (10%)"
-              type="number"
-              value={simulCommApporteur}
-              onChange={(e) => setSimulCommApporteur(Number(e.target.value))}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-            <BsbTextField
-              label="Comm. Resp. Service"
-              type="number"
-              value={simulCommResponsable}
-              onChange={(e) => setSimulCommResponsable(Number(e.target.value))}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4, md: 2 }}>
-            <BsbTextField
-              label="Comm. Commercial"
-              type="number"
-              value={simulCommCommercial}
-              onChange={(e) => setSimulCommCommercial(Number(e.target.value))}
-            />
-          </Grid>
-
-          {/* Result Banner */}
-          <Grid size={{ xs: 12 }}>
-            <Box sx={{ p: 2, bgcolor: '#fafafa', borderRadius: '2px', border: '1px solid #e0e0e0' }}>
-              <Grid container spacing={2} alignItems="center">
-                <Grid size={{ xs: 6, md: 2.4 }}>
-                  <Typography variant="caption" sx={{ color: '#777', fontWeight: 700, display: 'block' }}>4. Coût Final Achat :</Typography>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#333' }}>
-                    {formatCurrency(simulResult.coutFinalAchat)}
-                  </Typography>
-                </Grid>
-                <Grid size={{ xs: 6, md: 2.4 }}>
-                  <Typography variant="caption" sx={{ color: '#e65100', fontWeight: 800, display: 'block' }}>6. Prix Client Final :</Typography>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#e65100', bgcolor: '#fff59d', px: 1, py: 0.2, borderRadius: '2px', display: 'inline-block' }}>
-                    {formatCurrency(simulResult.prixClientFinal)}
-                  </Typography>
-                </Grid>
-                <Grid size={{ xs: 6, md: 2.4 }}>
-                  <Typography variant="caption" sx={{ color: '#1565c0', fontWeight: 800, display: 'block' }}>7. Marge Interne :</Typography>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#1565c0' }}>
-                    {formatCurrency(simulResult.margeInterne)} ({simulResult.tauxMarge}%)
-                  </Typography>
-                </Grid>
-                <Grid size={{ xs: 6, md: 2.4 }}>
-                  <Typography variant="caption" sx={{ color: '#e65100', fontWeight: 800, display: 'block' }}>Total Commissions :</Typography>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#e65100' }}>
-                    {formatCurrency(simulResult.totalCommissions)}
-                  </Typography>
-                </Grid>
-                <Grid size={{ xs: 12, md: 2.4 }}>
-                  <Typography variant="caption" sx={{ color: '#2e7d32', fontWeight: 800, display: 'block' }}>11. Bénéfice Réel :</Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 800, color: simulResult.beneficeReel >= 0 ? '#2e7d32' : '#c62828', bgcolor: '#c8e6c9', px: 1, py: 0.2, borderRadius: '2px', display: 'inline-block' }}>
-                    {formatCurrency(simulResult.beneficeReel)} ({simulResult.tauxMargeNette}%)
-                  </Typography>
-                </Grid>
-              </Grid>
-            </Box>
-          </Grid>
-        </Grid>
-      </BsbCard>
 
       {/* AdminBSB Card: Main DataTable */}
       <BsbCard
