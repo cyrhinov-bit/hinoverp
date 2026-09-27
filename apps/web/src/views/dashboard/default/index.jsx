@@ -5,7 +5,11 @@ import {
   Typography,
   Chip,
   Stack,
-  Paper
+  Paper,
+  Alert,
+  AlertTitle,
+  Button,
+  Avatar
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
@@ -35,6 +39,8 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import FilterAltIcon from '@mui/icons-material/FilterAlt';
+import PublicIcon from '@mui/icons-material/Public';
 
 export default function DashboardDefault() {
   const navigate = useNavigate();
@@ -47,7 +53,10 @@ export default function DashboardDefault() {
     prestations, 
     clientsFournisseurs, 
     agentsCommerciaux, 
-    commissions 
+    commissions,
+    selectedUserFilter,
+    setSelectedUserFilter,
+    effectiveFilteredUser
   } = useErpData();
 
   // Permissions par module (L'administrateur a une vue sur TOUT)
@@ -59,40 +68,75 @@ export default function DashboardDefault() {
   const canStocks = isAdmin || hasModule('STOCKS');
   const canMaintenance = isAdmin || hasModule('MAINTENANCE');
 
-  // Mouvements de caisse cloisonnés selon le périmètre de l'utilisateur
+  // Utilisateur cible effectif pour le filtrage
+  const effectiveTargetUser = useMemo(() => {
+    if (!isAdmin) return currentUser;
+    return effectiveFilteredUser; // null si 'ALL' (Vue Globale)
+  }, [isAdmin, currentUser, effectiveFilteredUser]);
+
+  // Prestations cloisonnées selon le périmètre sélectionné
+  const userScopedPrestations = useMemo(() => {
+    if (!effectiveTargetUser) return prestations;
+    return prestations.filter((p) => 
+      p.cree_par === effectiveTargetUser.id || 
+      p.commercial_id === effectiveTargetUser.id || 
+      p.commercial_nom === effectiveTargetUser.nom ||
+      p.apporteur_id === effectiveTargetUser.id ||
+      p.responsable_service_id === effectiveTargetUser.id
+    );
+  }, [prestations, effectiveTargetUser]);
+
+  // Mouvements de caisse cloisonnés selon le périmètre sélectionné
   const userScopedMouvements = useMemo(() => {
-    if (isAdmin) return mouvements;
+    if (!effectiveTargetUser) return mouvements;
     return mouvements.filter((m) => {
-      if (m.cree_par && m.cree_par === currentUser?.id) return true;
-      const mod = m.module_code || m.categorie;
-      if (mod === 'PRESTATIONS' && canPrestations) return true;
-      if (mod === 'MAINTENANCE' && canMaintenance) return true;
-      if (mod === 'STOCKS' && canStocks) return true;
-      if (mod === 'COMMISSIONS' && canCommissions) return true;
-      if (mod === 'GENERAL' && canCaisse) return true;
+      if (m.cree_par && m.cree_par === effectiveTargetUser.id) return true;
+      if (m.beneficiaire_emetteur && m.beneficiaire_emetteur === effectiveTargetUser.nom) return true;
+      if (m.tier_id && m.tier_id === effectiveTargetUser.id) return true;
       return false;
     });
-  }, [mouvements, isAdmin, currentUser, canPrestations, canMaintenance, canStocks, canCommissions, canCaisse]);
+  }, [mouvements, effectiveTargetUser]);
 
   // Tiers (Clients & Fournisseurs) cloisonnés selon le profil
   const userScopedClientsFournisseurs = useMemo(() => {
-    return filterTiersForUser(clientsFournisseurs, currentUser);
-  }, [clientsFournisseurs, currentUser]);
+    if (!effectiveTargetUser) return clientsFournisseurs;
+    return filterTiersForUser(clientsFournisseurs, effectiveTargetUser);
+  }, [clientsFournisseurs, effectiveTargetUser]);
+
+  // Interventions cloisonnées selon le profil
+  const userScopedInterventions = useMemo(() => {
+    if (!effectiveTargetUser) return interventions;
+    return interventions.filter((i) => 
+      i.technicien_assigne === effectiveTargetUser.nom || 
+      i.utilisateur_concerne === effectiveTargetUser.nom ||
+      i.client_id === effectiveTargetUser.id ||
+      i.client_nom === effectiveTargetUser.nom
+    );
+  }, [interventions, effectiveTargetUser]);
+
+  // Commissions cloisonnées selon le profil
+  const userScopedCommissions = useMemo(() => {
+    if (!effectiveTargetUser) return commissions;
+    return commissions.filter((c) => 
+      c.beneficiaire_id === effectiveTargetUser.id || 
+      c.beneficiaire_nom === effectiveTargetUser.nom
+    );
+  }, [commissions, effectiveTargetUser]);
 
   // Calculs transversaux
   const cashBalance = calculateCashBalance(userScopedMouvements);
   const stockValuation = calculateStockValuation(articles);
-  const maintenanceStats = calculateMaintenanceStats(interventions);
-  const prestationsStats = calculatePrestationsStats(prestations);
+  const maintenanceStats = calculateMaintenanceStats(userScopedInterventions);
+  const prestationsStats = calculatePrestationsStats(userScopedPrestations);
   const thirdPartyStats = useMemo(() => {
-    return calculateThirdPartyStats(userScopedClientsFournisseurs, prestations, userScopedMouvements, interventions, articles);
-  }, [userScopedClientsFournisseurs, prestations, userScopedMouvements, interventions, articles]);
+    return calculateThirdPartyStats(userScopedClientsFournisseurs, userScopedPrestations, userScopedMouvements, userScopedInterventions, articles);
+  }, [userScopedClientsFournisseurs, userScopedPrestations, userScopedMouvements, userScopedInterventions, articles]);
   const commissionsStats = useMemo(() => {
-    return calculateCommissionsStats(commissions);
-  }, [commissions]);
+    return calculateCommissionsStats(userScopedCommissions);
+  }, [userScopedCommissions]);
   const commercialsStats = useMemo(() => {
-    return calculateCommercialsStats(agentsCommerciaux, prestations, commissions);
-  }, [agentsCommerciaux, prestations, commissions]);
+    return calculateCommercialsStats(agentsCommerciaux, userScopedPrestations, userScopedCommissions);
+  }, [agentsCommerciaux, userScopedPrestations, userScopedCommissions]);
 
   // Cartes KPI dynamiques selon les modules autorisés
   const kpiCards = useMemo(() => {
@@ -232,6 +276,48 @@ export default function DashboardDefault() {
 
   return (
     <Box sx={{ pb: 3 }}>
+      {/* Bandeau d'information si un filtre utilisateur est sélectionné par le Directeur */}
+      {isAdmin && selectedUserFilter !== 'ALL' && effectiveFilteredUser && (
+        <Alert
+          severity="info"
+          icon={<FilterAltIcon fontSize="inherit" />}
+          action={
+            <Button
+              color="inherit"
+              size="small"
+              onClick={() => setSelectedUserFilter('ALL')}
+              sx={{ fontWeight: 800, textTransform: 'none' }}
+            >
+              Réinitialiser à la Vue Globale
+            </Button>
+          }
+          sx={{
+            mb: 3,
+            borderRadius: 2,
+            border: '1px solid #90caf9',
+            bgcolor: '#e3f2fd',
+            '& .MuiAlert-message': { width: '100%' }
+          }}
+        >
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Avatar
+              src={effectiveFilteredUser.avatar_url}
+              sx={{ width: 32, height: 32, border: '2px solid #1976d2' }}
+            >
+              {effectiveFilteredUser.nom?.charAt(0)}
+            </Avatar>
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0d47a1' }}>
+                Filtre Direction Actif : {effectiveFilteredUser.nom}
+              </Typography>
+              <Typography variant="caption" sx={{ color: '#1565c0' }}>
+                Les KPIs, ventes, dépenses et activités ci-dessous correspondent exclusivement à ce collaborateur ({effectiveFilteredUser.poste || effectiveFilteredUser.email}).
+              </Typography>
+            </Box>
+          </Stack>
+        </Alert>
+      )}
+
       {/* Dynamic Info-Boxes based on module permissions */}
       {kpiCards.length > 0 ? (
         <Grid container spacing={2.5} sx={{ mb: 3.5 }}>

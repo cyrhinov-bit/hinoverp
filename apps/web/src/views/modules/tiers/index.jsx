@@ -11,7 +11,9 @@ import {
   List,
   ListItem,
   ListItemText,
-  Paper
+  Paper,
+  Alert,
+  Button
 } from '@mui/material';
 
 import {
@@ -56,13 +58,18 @@ export default function TiersManager() {
     mouvements,
     addClientFournisseur,
     updateClientFournisseur,
-    deleteClientFournisseur
+    deleteClientFournisseur,
+    selectedUserFilter,
+    setSelectedUserFilter,
+    effectiveFilteredUser
   } = useErpData();
 
   const [activeTab, setActiveTab] = useState('ALL');
   const [openModal, setOpenModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [selectedTierForDrawer, setSelectedTierForDrawer] = useState(null);
+
+  const effectiveTargetUser = isAdmin && effectiveFilteredUser ? effectiveFilteredUser : currentUser;
 
   // Form State
   const [formData, setFormData] = useState({
@@ -75,10 +82,10 @@ export default function TiersManager() {
     notes: ''
   });
 
-  // Cloisonnement : Chaque utilisateur ne voit que ses clients/fournisseurs. Seul l'admin a une vue globale.
+  // Cloisonnement : Chaque utilisateur ne voit que ses clients/fournisseurs. Seul l'admin a une vue globale ou filtrée.
   const userScopedClientsFournisseurs = useMemo(() => {
-    return filterTiersForUser(clientsFournisseurs, currentUser);
-  }, [clientsFournisseurs, currentUser]);
+    return filterTiersForUser(clientsFournisseurs, effectiveTargetUser);
+  }, [clientsFournisseurs, effectiveTargetUser]);
 
   // Analytics calculés sur le périmètre autorisé
   const stats = useMemo(() => {
@@ -352,6 +359,20 @@ export default function TiersManager() {
 
   return (
     <Box sx={{ pb: 3 }}>
+      {isAdmin && effectiveFilteredUser && (
+        <Alert
+          severity="info"
+          sx={{ mb: 2, borderRadius: '4px', display: 'flex', alignItems: 'center' }}
+          action={
+            <Button color="inherit" size="small" onClick={() => setSelectedUserFilter('ALL')}>
+              Réinitialiser (Vue globale)
+            </Button>
+          }
+        >
+          Filtrage actif par collaborateur : <strong>{effectiveFilteredUser.nom}</strong> ({effectiveFilteredUser.email}) — L'annuaire des tiers et ses indicateurs sont restreints au portefeuille de cet utilisateur.
+        </Alert>
+      )}
+
       {/* KPI Cards Row (AdminBSB Info-Boxes) */}
       <Grid container spacing={2.5} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>

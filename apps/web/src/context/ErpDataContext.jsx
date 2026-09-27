@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { 
   INITIAL_PROFILES, 
   INITIAL_MODULES, 
@@ -47,6 +47,9 @@ const defaultErpDataContext = {
   realtimeStatus: 'OFFLINE',
   isSupabaseOnline: false,
   refreshFromSupabase: async () => {},
+  selectedUserFilter: 'ALL',
+  setSelectedUserFilter: () => {},
+  effectiveFilteredUser: null,
   hasModule: () => true,
   toggleUserModule: () => {},
   addProfile: () => {},
@@ -224,6 +227,13 @@ export function ErpDataProvider({ children }) {
 
   const [realtimeStatus, setRealtimeStatus] = useState('CONNECTING');
   const [isSupabaseOnline, setIsSupabaseOnline] = useState(false);
+
+  // Filtre multi-utilisateurs pour la Direction (ADMIN)
+  const [selectedUserFilter, setSelectedUserFilter] = useState('ALL');
+  const effectiveFilteredUser = useMemo(() => {
+    if (selectedUserFilter === 'ALL') return null;
+    return profiles.find(p => p.id === selectedUserFilter || (p.email && p.email.toLowerCase() === selectedUserFilter.toLowerCase())) || null;
+  }, [selectedUserFilter, profiles]);
 
   // Helper pour fusionner les entités locales et distantes
   function mergeEntities(remoteList, localList, idKey = 'id') {
@@ -1426,7 +1436,10 @@ export function ErpDataProvider({ children }) {
         resetAllData,
         realtimeStatus,
         isSupabaseOnline,
-        refreshFromSupabase
+        refreshFromSupabase,
+        selectedUserFilter,
+        setSelectedUserFilter,
+        effectiveFilteredUser
       }}
     >
       {children}

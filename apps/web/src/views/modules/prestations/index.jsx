@@ -7,7 +7,9 @@ import {
   Stack,
   TableCell,
   TableRow,
-  Alert
+  Alert,
+  Button,
+  Avatar
 } from '@mui/material';
 
 import {
@@ -68,7 +70,10 @@ export default function PrestationsModule() {
     addPrestation, 
     updatePrestation, 
     deletePrestation,
-    encaisserPrestation
+    encaisserPrestation,
+    selectedUserFilter,
+    setSelectedUserFilter,
+    effectiveFilteredUser
   } = useErpData();
   
   const [openModal, setOpenModal] = useState(false);
@@ -334,7 +339,13 @@ export default function PrestationsModule() {
     const matchStatus = statusFilter === 'ALL' || p.statut === statusFilter;
     const matchClient =
       clientFilter === 'ALL' || p.client_id === clientFilter || p.client_nom === clientFilter;
-    return matchStatus && matchClient;
+    const matchUser = !effectiveFilteredUser ||
+      p.cree_par === effectiveFilteredUser.id ||
+      p.commercial_id === effectiveFilteredUser.id ||
+      p.commercial_nom === effectiveFilteredUser.nom ||
+      p.apporteur_id === effectiveFilteredUser.id ||
+      p.responsable_service_id === effectiveFilteredUser.id;
+    return matchStatus && matchClient && matchUser;
   });
 
   const getStatusChip = (statut) => {
@@ -642,6 +653,47 @@ export default function PrestationsModule() {
 
   return (
     <Box sx={{ pb: 3 }}>
+      {/* Bandeau d'information si un filtre utilisateur est sélectionné par le Directeur */}
+      {isAdmin && selectedUserFilter !== 'ALL' && effectiveFilteredUser && (
+        <Alert
+          severity="info"
+          action={
+            <Button
+              color="inherit"
+              size="small"
+              onClick={() => setSelectedUserFilter('ALL')}
+              sx={{ fontWeight: 800, textTransform: 'none' }}
+            >
+              Réinitialiser à la Vue Globale
+            </Button>
+          }
+          sx={{
+            mb: 3,
+            borderRadius: 2,
+            border: '1px solid #90caf9',
+            bgcolor: '#e3f2fd',
+            '& .MuiAlert-message': { width: '100%' }
+          }}
+        >
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Avatar
+              src={effectiveFilteredUser.avatar_url}
+              sx={{ width: 32, height: 32, border: '2px solid #1976d2' }}
+            >
+              {effectiveFilteredUser.nom?.charAt(0)}
+            </Avatar>
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#0d47a1' }}>
+                Prestations filtrées pour : {effectiveFilteredUser.nom}
+              </Typography>
+              <Typography variant="caption" sx={{ color: '#1565c0' }}>
+                Affichage des commandes et calculs de marge associés à ce collaborateur ({effectiveFilteredUser.poste || effectiveFilteredUser.email}).
+              </Typography>
+            </Box>
+          </Stack>
+        </Alert>
+      )}
+
       {/* KPI Cards Row (AdminBSB Info-Boxes) */}
       <Grid container spacing={2.5} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>

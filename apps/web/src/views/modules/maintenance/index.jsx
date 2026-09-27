@@ -7,7 +7,8 @@ import {
   Stack,
   Alert,
   IconButton,
-  Tooltip
+  Tooltip,
+  Button
 } from '@mui/material';
 
 import {
@@ -40,7 +41,17 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
 export default function MaintenanceModule() {
   const { currentUser, isAdmin } = useAuth();
-  const { hasModule, interventions, clientsFournisseurs, addIntervention, updateIntervention, deleteIntervention } = useErpData();
+  const { 
+    hasModule, 
+    interventions, 
+    clientsFournisseurs, 
+    addIntervention, 
+    updateIntervention, 
+    deleteIntervention,
+    selectedUserFilter,
+    setSelectedUserFilter,
+    effectiveFilteredUser
+  } = useErpData();
   const [openModal, setOpenModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -49,9 +60,11 @@ export default function MaintenanceModule() {
   // Confirmation Modal State: { type: 'PRISE_EN_MAIN' | 'CLOTURER' | 'DELETE', item: Object } | null
   const [confirmModal, setConfirmModal] = useState(null);
 
+  const effectiveTargetUser = isAdmin && effectiveFilteredUser ? effectiveFilteredUser : currentUser;
+
   const userScopedClientsFournisseurs = useMemo(() => {
-    return filterTiersForUser(clientsFournisseurs, currentUser);
-  }, [clientsFournisseurs, currentUser]);
+    return filterTiersForUser(clientsFournisseurs, effectiveTargetUser);
+  }, [clientsFournisseurs, effectiveTargetUser]);
 
   const clients = useMemo(() => userScopedClientsFournisseurs.filter((t) => t.type === 'CLIENT'), [userScopedClientsFournisseurs]);
 
@@ -97,7 +110,29 @@ export default function MaintenanceModule() {
     );
   }
 
-  const stats = calculateMaintenanceStats(interventions);
+  const userScopedInterventions = useMemo(() => {
+    if (isAdmin) {
+      if (effectiveFilteredUser) {
+        return interventions.filter(
+          (i) =>
+            i.technicien_assigne === effectiveFilteredUser.nom ||
+            i.client_id === effectiveFilteredUser.id ||
+            i.utilisateur_concerne === effectiveFilteredUser.nom ||
+            i.cree_par === effectiveFilteredUser.id
+        );
+      }
+      return interventions;
+    }
+    return interventions.filter(
+      (i) =>
+        i.technicien_assigne === currentUser?.nom ||
+        i.technicien_assigne === currentUser?.email ||
+        i.cree_par === currentUser?.id ||
+        i.utilisateur_concerne === currentUser?.nom
+    );
+  }, [interventions, isAdmin, effectiveFilteredUser, currentUser]);
+
+  const stats = calculateMaintenanceStats(userScopedInterventions);
 
   const handleClientSelect = (clientId) => {
     if (!clientId) {
@@ -214,11 +249,13 @@ export default function MaintenanceModule() {
     setConfirmModal(null);
   };
 
-  const filtered = interventions.filter((item) => {
-    const matchStatus = statusFilter === 'ALL' || item.statut === statusFilter;
-    const matchClient = clientFilter === 'ALL' || item.client_id === clientFilter || item.client_nom === clientFilter;
-    return matchStatus && matchClient;
-  });
+  const filtered = useMemo(() => {
+    return userScopedInterventions.filter((item) => {
+      const matchStatus = statusFilter === 'ALL' || item.statut === statusFilter;
+      const matchClient = clientFilter === 'ALL' || item.client_id === clientFilter || item.client_nom === clientFilter;
+      return matchStatus && matchClient;
+    });
+  }, [userScopedInterventions, statusFilter, clientFilter]);
 
   const getStatusChip = (statut) => {
     switch (statut) {
@@ -237,6 +274,20 @@ export default function MaintenanceModule() {
 
   return (
     <Box sx={{ pb: 3 }}>
+      {isAdmin && effectiveFilteredUser && (
+        <Alert
+          severity="info"
+          sx={{ mb: 2, borderRadius: '4px', display: 'flex', alignItems: 'center' }}
+          action={
+            <Button color="inherit" size="small" onClick={() => setSelectedUserFilter('ALL')}>
+              Réinitialiser (Vue globale)
+            </Button>
+          }
+        >
+          Filtrage actif par collaborateur : <strong>{effectiveFilteredUser.nom}</strong> ({effectiveFilteredUser.email}) — Les tickets et interventions sont restreints à cet utilisateur / technicien.
+        </Alert>
+      )}
+
       {/* KPI Info Boxes AdminBSB */}
       <Grid container spacing={2.5} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>

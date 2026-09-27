@@ -9,7 +9,10 @@ import {
   Tooltip,
   Paper,
   TableRow,
-  TableCell
+  TableCell,
+  Alert,
+  Button,
+  Avatar
 } from '@mui/material';
 
 import {
@@ -85,7 +88,10 @@ export default function CaisseModule() {
     clientsFournisseurs, 
     addMouvement, 
     updateMouvement, 
-    deleteMouvement 
+    deleteMouvement,
+    selectedUserFilter,
+    setSelectedUserFilter,
+    effectiveFilteredUser
   } = useErpData();
 
   const [openModal, setOpenModal] = useState(false);
@@ -105,9 +111,11 @@ export default function CaisseModule() {
   const canCommissions = isAdmin || hasModule('COMMISSIONS');
   const canCaisse = isAdmin || hasModule('CAISSE_DEPENSES');
 
+  const effectiveTargetUser = isAdmin && effectiveFilteredUser ? effectiveFilteredUser : currentUser;
+
   const userScopedClientsFournisseurs = useMemo(() => {
-    return filterTiersForUser(clientsFournisseurs, currentUser);
-  }, [clientsFournisseurs, currentUser]);
+    return filterTiersForUser(clientsFournisseurs, effectiveTargetUser);
+  }, [clientsFournisseurs, effectiveTargetUser]);
 
   const clients = useMemo(() => userScopedClientsFournisseurs.filter((t) => t.type === 'CLIENT'), [userScopedClientsFournisseurs]);
   const fournisseurs = useMemo(() => userScopedClientsFournisseurs.filter((t) => t.type === 'FOURNISSEUR' || t.type === 'PARTENAIRE'), [userScopedClientsFournisseurs]);
@@ -161,6 +169,15 @@ export default function CaisseModule() {
   // 1. Filtrage cloisonné par habilitation de l'utilisateur
   const userScopedMouvements = useMemo(() => {
     if (isAdmin) {
+      if (effectiveFilteredUser) {
+        return mouvements.filter((m) => {
+          return (
+            m.cree_par === effectiveFilteredUser.id ||
+            m.beneficiaire_emetteur === effectiveFilteredUser.nom ||
+            m.tier_id === effectiveFilteredUser.id
+          );
+        });
+      }
       return mouvements;
     }
     return mouvements.filter((m) => {
@@ -175,7 +192,7 @@ export default function CaisseModule() {
 
       return false;
     });
-  }, [mouvements, isAdmin, currentUser, canPrestations, canMaintenance, canStocks, canCommissions, canCaisse]);
+  }, [mouvements, isAdmin, currentUser, effectiveFilteredUser, canPrestations, canMaintenance, canStocks, canCommissions, canCaisse]);
 
   // 2. Calcul des KPI sur le périmètre cloisonné de l'utilisateur
   const cashStats = calculateCashFlowStats(userScopedMouvements);
@@ -364,6 +381,20 @@ export default function CaisseModule() {
 
   return (
     <Box sx={{ pb: 3 }}>
+      {isAdmin && effectiveFilteredUser && (
+        <Alert
+          severity="info"
+          sx={{ mb: 2, borderRadius: '4px', display: 'flex', alignItems: 'center' }}
+          action={
+            <Button color="inherit" size="small" onClick={() => setSelectedUserFilter('ALL')}>
+              Réinitialiser (Vue globale)
+            </Button>
+          }
+        >
+          Filtrage actif par collaborateur : <strong>{effectiveFilteredUser.nom}</strong> ({effectiveFilteredUser.email}) — Les flux financiers affichés ci-dessous sont restreints à cet utilisateur.
+        </Alert>
+      )}
+
       {/* Bannière de Périmètre */}
       <Paper
         elevation={0}
