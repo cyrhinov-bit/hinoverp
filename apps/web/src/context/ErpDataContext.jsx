@@ -571,7 +571,7 @@ export function ErpDataProvider({ children }) {
       password: newUserData.password || 'Hinov@123',
       role: newUserData.role || 'USER',
       actif: newUserData.actif !== undefined ? newUserData.actif : true,
-      avatar_url: newUserData.avatar_url || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80`,
+      avatar_url: newUserData.avatar_url || '',
       created_at: new Date().toISOString()
     };
 

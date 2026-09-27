@@ -117,7 +117,7 @@ export const INITIAL_PROFILES: Profile[] = [
     telephone: '+225 07 00 00 00 00',
     role: 'USER',
     actif: true,
-    avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+    avatar_url: '',
     created_at: new Date().toISOString()
   }
 ];
