@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { Outlet, Navigate, useLocation } from 'react-router-dom';
+import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 // material-ui
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -21,6 +21,7 @@ import { useAuth } from 'context/AuthContext';
 export default function MainLayout() {
   const { currentUser } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const upLG = useMediaQuery((theme) => theme.breakpoints.up('lg'));
 
   const { menuMaster } = useGetMenuMaster();
@@ -29,6 +30,16 @@ export default function MainLayout() {
   useEffect(() => {
     handlerDrawerOpen(upLG);
   }, [upLG]);
+
+  // Écoute de la navigation depuis le menu natif de l'application Desktop (Electron)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.electronAPI?.onNavigate) {
+      const cleanup = window.electronAPI.onNavigate((path) => {
+        if (path) navigate(path);
+      });
+      return () => cleanup?.();
+    }
+  }, [navigate]);
 
   // Si l'utilisateur n'est pas connecté, redirection automatique vers la page de login
   if (!currentUser) {
