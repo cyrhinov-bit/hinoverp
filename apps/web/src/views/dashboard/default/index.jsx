@@ -41,6 +41,13 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import PublicIcon from '@mui/icons-material/Public';
+import ShowChartIcon from '@mui/icons-material/ShowChart';
+
+// Composants de Diagrammes Évolutifs
+import RevenueEvolutionChart from './components/RevenueEvolutionChart';
+import CashFlowEvolutionChart from './components/CashFlowEvolutionChart';
+import ExpenseDistributionChart from './components/ExpenseDistributionChart';
+import OperationalTrendChart from './components/OperationalTrendChart';
 
 export default function DashboardDefault() {
   const navigate = useNavigate();
@@ -356,274 +363,38 @@ export default function DashboardDefault() {
         </Paper>
       )}
 
-      {/* AdminBSB Card: Services & Modules */}
-      <BsbCard
-        title="SERVICES & MODULES ERP"
-        subtitle="Accès instantané aux applications selon vos habilitations"
-        headerAction={
-          isAdmin && (
-            <BsbButton
-              size="sm"
-              color="primary"
-              startIcon={<AdminPanelSettingsIcon />}
-              onClick={() => navigate('/admin/permissions')}
-            >
-              Gérer les Permissions
-            </BsbButton>
-          )
-        }
-      >
-        <Grid container spacing={2}>
-          {canPrestations && (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  border: '1px solid #e0e0e0',
-                  borderLeft: '4px solid #E91E63',
-                  borderRadius: '2px',
-                  transition: 'all 0.2s',
-                  '&:hover': { boxShadow: '0 3px 8px rgba(0,0,0,0.1)' }
-                }}
-              >
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#333' }}>
-                    Prestations & Marges
-                  </Typography>
-                  <Chip label="11 Colonnes" size="small" sx={{ bgcolor: '#fce4ec', color: '#c2185b', fontWeight: 700, fontSize: '0.65rem' }} />
-                </Stack>
-                <Typography variant="body2" sx={{ color: '#666', my: 1, fontSize: '0.78rem' }}>
-                  Calcul en cascade: Coûts, Ventes, Commissions (Apporteur 10%, Resp, Agent) et Bénéfice Réel.
-                </Typography>
-                <BsbButton
-                  size="xs"
-                  color="pink"
-                  endIcon={<ArrowForwardIcon />}
-                  onClick={() => navigate('/prestations')}
-                >
-                  Ouvrir Prestations
-                </BsbButton>
-              </Paper>
-            </Grid>
-          )}
+      {/* ========================================================================= */}
+      {/* SECTION DES DIAGRAMMES D'ÉVOLUTION ANALYTIQUES (CHARTS DYNAMIQUES)        */}
+      {/* ========================================================================= */}
 
-          {canCommissions && (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  border: '1px solid #e0e0e0',
-                  borderLeft: '4px solid #FF9800',
-                  borderRadius: '2px',
-                  transition: 'all 0.2s',
-                  '&:hover': { boxShadow: '0 3px 8px rgba(0,0,0,0.1)' }
-                }}
-              >
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#333' }}>
-                    Gestion des Commissions
-                  </Typography>
-                  <Chip label="Commissions" size="small" sx={{ bgcolor: '#fff3e0', color: '#e65100', fontWeight: 700, fontSize: '0.65rem' }} />
-                </Stack>
-                <Typography variant="body2" sx={{ color: '#666', my: 1, fontSize: '0.78rem' }}>
-                  Suivi des versements, validation des décaissements et historique par agent/apporteur.
-                </Typography>
-                <BsbButton
-                  size="xs"
-                  color="orange"
-                  endIcon={<ArrowForwardIcon />}
-                  onClick={() => navigate('/commissions')}
-                >
-                  Gérer Versements
-                </BsbButton>
-              </Paper>
-            </Grid>
-          )}
+      {/* 1. Évolution du Chiffre d'Affaires & Bénéfice Réel */}
+      {canPrestations && (
+        <Box sx={{ mb: 3.5 }}>
+          <RevenueEvolutionChart prestations={userScopedPrestations} />
+        </Box>
+      )}
 
-          {canCommerciaux && (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  border: '1px solid #e0e0e0',
-                  borderLeft: '4px solid #FF5722',
-                  borderRadius: '2px',
-                  transition: 'all 0.2s',
-                  '&:hover': { boxShadow: '0 3px 8px rgba(0,0,0,0.1)' }
-                }}
-              >
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#333' }}>
-                    Force Commerciale
-                  </Typography>
-                  <Chip label="Équipe" size="small" sx={{ bgcolor: '#fbe9e7', color: '#bf360c', fontWeight: 700, fontSize: '0.65rem' }} />
-                </Stack>
-                <Typography variant="body2" sx={{ color: '#666', my: 1, fontSize: '0.78rem' }}>
-                  Portefeuille d'agents, contrats clos, volume de ventes et commissions acquises.
-                </Typography>
-                <BsbButton
-                  size="xs"
-                  color="deep-orange"
-                  endIcon={<ArrowForwardIcon />}
-                  onClick={() => navigate('/commerciaux')}
-                >
-                  Voir l'Équipe
-                </BsbButton>
-              </Paper>
-            </Grid>
-          )}
-
-          {canTiers && (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  border: '1px solid #e0e0e0',
-                  borderLeft: '4px solid #3F51B5',
-                  borderRadius: '2px',
-                  transition: 'all 0.2s',
-                  '&:hover': { boxShadow: '0 3px 8px rgba(0,0,0,0.1)' }
-                }}
-              >
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#333' }}>
-                    Clients & Fournisseurs
-                  </Typography>
-                  <Chip label="Annuaire" size="small" sx={{ bgcolor: '#e8eaf6', color: '#1a237e', fontWeight: 700, fontSize: '0.65rem' }} />
-                </Stack>
-                <Typography variant="body2" sx={{ color: '#666', my: 1, fontSize: '0.78rem' }}>
-                  Répertoire centralisé, fiches de contact et historique des opérations associées.
-                </Typography>
-                <BsbButton
-                  size="xs"
-                  color="indigo"
-                  endIcon={<ArrowForwardIcon />}
-                  onClick={() => navigate('/tiers')}
-                >
-                  Consulter Tiers
-                </BsbButton>
-              </Paper>
-            </Grid>
-          )}
-
-          {canCaisse && (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  border: '1px solid #e0e0e0',
-                  borderLeft: '4px solid #4CAF50',
-                  borderRadius: '2px',
-                  transition: 'all 0.2s',
-                  '&:hover': { boxShadow: '0 3px 8px rgba(0,0,0,0.1)' }
-                }}
-              >
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#333' }}>
-                    Caisse & Dépenses
-                  </Typography>
-                  <Chip label="Trésorerie" size="small" sx={{ bgcolor: '#e8f5e9', color: '#1b5e20', fontWeight: 700, fontSize: '0.65rem' }} />
-                </Stack>
-                <Typography variant="body2" sx={{ color: '#666', my: 1, fontSize: '0.78rem' }}>
-                  Flux de trésorerie, entrées/sorties en temps réel et solde bancaire/caisse.
-                </Typography>
-                <BsbButton
-                  size="xs"
-                  color="green"
-                  endIcon={<ArrowForwardIcon />}
-                  onClick={() => navigate('/caisse')}
-                >
-                  Voir Trésorerie
-                </BsbButton>
-              </Paper>
-            </Grid>
-          )}
-
-          {canStocks && (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  border: '1px solid #e0e0e0',
-                  borderLeft: '4px solid #9C27B0',
-                  borderRadius: '2px',
-                  transition: 'all 0.2s',
-                  '&:hover': { boxShadow: '0 3px 8px rgba(0,0,0,0.1)' }
-                }}
-              >
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#333' }}>
-                    Stocks & Approvisionnement
-                  </Typography>
-                  <Chip label="Inventaire" size="small" sx={{ bgcolor: '#f3e5f5', color: '#4a148c', fontWeight: 700, fontSize: '0.65rem' }} />
-                </Stack>
-                <Typography variant="body2" sx={{ color: '#666', my: 1, fontSize: '0.78rem' }}>
-                  Gestion des articles, valorisation du stock et alertes de seuil critique.
-                </Typography>
-                <BsbButton
-                  size="xs"
-                  color="purple"
-                  endIcon={<ArrowForwardIcon />}
-                  onClick={() => navigate('/stocks')}
-                >
-                  Consulter Stock
-                </BsbButton>
-              </Paper>
-            </Grid>
-          )}
-
-          {canMaintenance && (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  border: '1px solid #e0e0e0',
-                  borderLeft: '4px solid #607D8B',
-                  borderRadius: '2px',
-                  transition: 'all 0.2s',
-                  '&:hover': { boxShadow: '0 3px 8px rgba(0,0,0,0.1)' }
-                }}
-              >
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#333' }}>
-                    Maintenance & Pannes
-                  </Typography>
-                  <Chip label="Technique" size="small" sx={{ bgcolor: '#eceff1', color: '#37474f', fontWeight: 700, fontSize: '0.65rem' }} />
-                </Stack>
-                <Typography variant="body2" sx={{ color: '#666', my: 1, fontSize: '0.78rem' }}>
-                  Suivi des pannes, fiches d'interventions sur sites et techniciens assignés.
-                </Typography>
-                <BsbButton
-                  size="xs"
-                  color="blue-grey"
-                  endIcon={<ArrowForwardIcon />}
-                  onClick={() => navigate('/maintenance')}
-                >
-                  Ouvrir Maintenance
-                </BsbButton>
-              </Paper>
-            </Grid>
-          )}
+      {/* 2. Flux de Trésorerie & Répartition des Dépenses */}
+      {canCaisse && (
+        <Grid container spacing={2.5} sx={{ mb: 3.5 }}>
+          <Grid size={{ xs: 12, lg: 7 }}>
+            <CashFlowEvolutionChart mouvements={userScopedMouvements} />
+          </Grid>
+          <Grid size={{ xs: 12, lg: 5 }}>
+            <ExpenseDistributionChart mouvements={userScopedMouvements} />
+          </Grid>
         </Grid>
+      )}
 
-        {!(canPrestations || canCommissions || canCommerciaux || canTiers || canCaisse || canStocks || canMaintenance) && (
-          <Box sx={{ p: 3, textAlign: 'center' }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#64748b' }}>
-              Aucun service applicatif habilité
-            </Typography>
-            <Typography variant="body2" sx={{ color: '#94a3b8', mt: 0.5 }}>
-              Votre profil utilisateur ne dispose actuellement d'aucun module activé. Contactez votre administrateur pour obtenir des accès.
-            </Typography>
-          </Box>
-        )}
-      </BsbCard>
+      {/* 3. Tendance des Activités Opérationnelles */}
+      {(canPrestations || canMaintenance) && (
+        <Box sx={{ mb: 1 }}>
+          <OperationalTrendChart
+            prestations={userScopedPrestations}
+            interventions={userScopedInterventions}
+          />
+        </Box>
+      )}
     </Box>
   );
 }
