@@ -392,8 +392,31 @@ export default function DashboardDefault() {
           <OperationalTrendChart
             prestations={userScopedPrestations}
             interventions={userScopedInterventions}
+            canPrestations={canPrestations}
+            canMaintenance={canMaintenance}
           />
         </Box>
+      )}
+
+      {/* Message si aucun module graphique n'est habilité */}
+      {!(canPrestations || canCaisse || canMaintenance) && (
+        <Paper
+          elevation={0}
+          sx={{
+            p: 4,
+            border: '1px dashed #cbd5e1',
+            borderRadius: 2,
+            bgcolor: '#f8fafc',
+            textAlign: 'center'
+          }}
+        >
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#334155' }}>
+            Aucun diagramme d'évolution financière ou opérationnelle pour ce profil
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#64748b', mt: 0.5, maxWidth: 600, mx: 'auto' }}>
+            Vos habilitations actuelles ({canStocks ? 'Stocks ' : ''}{canTiers ? 'Clients & Fournisseurs ' : ''}{canCommissions ? 'Commissions ' : ''}{canCommerciaux ? 'Équipe Commerciale ' : ''}) ne nécessitent pas de diagramme de flux. Utilisez le menu latéral pour consulter vos modules dédiés.
+          </Typography>
+        </Paper>
       )}
     </Box>
   );

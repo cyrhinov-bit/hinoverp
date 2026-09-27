@@ -5,13 +5,55 @@ import ReactApexChart from 'react-apexcharts';
 import { BsbCard } from 'components/adminbsb';
 import { computeOperationalTrend } from '../utils/evolutionAnalytics';
 
-export default function OperationalTrendChart({ prestations = [], interventions = [] }) {
+export default function OperationalTrendChart({ 
+  prestations = [], 
+  interventions = [],
+  canPrestations = true,
+  canMaintenance = true
+}) {
   const theme = useTheme();
   const [monthsCount, setMonthsCount] = useState(6);
 
-  const { categories, series, totals } = useMemo(() => {
+  const { categories, series: allSeries, totals } = useMemo(() => {
     return computeOperationalTrend(prestations, interventions, monthsCount);
   }, [prestations, interventions, monthsCount]);
+
+  // Filtrer les séries selon les habilitations effectives de l'utilisateur
+  const { filteredSeries, chartColors } = useMemo(() => {
+    const s = [];
+    const colors = [];
+
+    if (canPrestations) {
+      const prestSerie = allSeries.find(item => item.name.includes('Prestations'));
+      if (prestSerie) {
+        s.push(prestSerie);
+        colors.push('#3F51B5');
+      }
+    }
+
+    if (canMaintenance) {
+      const maintSerie = allSeries.find(item => item.name.includes('Maintenance'));
+      if (maintSerie) {
+        s.push(maintSerie);
+        colors.push('#009688');
+      }
+    }
+
+    return { filteredSeries: s, chartColors: colors };
+  }, [allSeries, canPrestations, canMaintenance]);
+
+  const subtitle = useMemo(() => {
+    if (canPrestations && canMaintenance) {
+      return "Cadence mensuelle : Prestations commerciales conclues vs Interventions maintenance";
+    }
+    if (canPrestations) {
+      return "Cadence mensuelle des prestations et dossiers de ventes conclus";
+    }
+    if (canMaintenance) {
+      return "Cadence mensuelle des interventions techniques de maintenance réalisées";
+    }
+    return "Volume d'activité opérationnelle";
+  }, [canPrestations, canMaintenance]);
 
   const chartOptions = useMemo(() => {
     return {
@@ -21,11 +63,11 @@ export default function OperationalTrendChart({ prestations = [], interventions 
         toolbar: { show: false },
         fontFamily: theme.typography.fontFamily || 'Poppins, sans-serif'
       },
-      colors: ['#3F51B5', '#009688'],
+      colors: chartColors,
       plotOptions: {
         bar: {
           horizontal: false,
-          columnWidth: '45%',
+          columnWidth: filteredSeries.length === 1 ? '35%' : '45%',
           borderRadius: 4
         }
       },
@@ -71,12 +113,14 @@ export default function OperationalTrendChart({ prestations = [], interventions 
         strokeDashArray: 4
       }
     };
-  }, [categories, theme]);
+  }, [categories, chartColors, filteredSeries.length, theme]);
+
+  if (!canPrestations && !canMaintenance) return null;
 
   return (
     <BsbCard
       title="VOLUME D'ACTIVITÉ OPÉRATIONNELLE"
-      subtitle="Cadence mensuelle : Prestations commerciales conclues vs Interventions maintenance"
+      subtitle={subtitle}
       headerAction={
         <ButtonGroup size="small" variant="outlined" sx={{ bgcolor: '#fff' }}>
           <Button
@@ -102,28 +146,32 @@ export default function OperationalTrendChart({ prestations = [], interventions 
         sx={{ mb: 2, p: 1.5, bgcolor: '#f8fafc', borderRadius: 2, border: '1px solid #e2e8f0' }}
         justifyContent="space-around"
       >
-        <Box textAlign={{ xs: 'left', sm: 'center' }}>
-          <Typography variant="caption" sx={{ color: '#3F51B5', fontWeight: 600 }}>
-            Total Prestations Conclues
-          </Typography>
-          <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#3F51B5' }}>
-            {totals.totalPrestations} dossiers
-          </Typography>
-        </Box>
-        <Box textAlign={{ xs: 'left', sm: 'center' }}>
-          <Typography variant="caption" sx={{ color: '#009688', fontWeight: 600 }}>
-            Total Interventions Réalisées
-          </Typography>
-          <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#009688' }}>
-            {totals.totalInterventions} interventions
-          </Typography>
-        </Box>
+        {canPrestations && (
+          <Box textAlign={{ xs: 'left', sm: 'center' }}>
+            <Typography variant="caption" sx={{ color: '#3F51B5', fontWeight: 600 }}>
+              Total Prestations Conclues
+            </Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#3F51B5' }}>
+              {totals.totalPrestations} dossiers
+            </Typography>
+          </Box>
+        )}
+        {canMaintenance && (
+          <Box textAlign={{ xs: 'left', sm: 'center' }}>
+            <Typography variant="caption" sx={{ color: '#009688', fontWeight: 600 }}>
+              Total Interventions Réalisées
+            </Typography>
+            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#009688' }}>
+              {totals.totalInterventions} interventions
+            </Typography>
+          </Box>
+        )}
       </Stack>
 
       <Box sx={{ minHeight: 300, width: '100%' }}>
         <ReactApexChart
           options={chartOptions}
-          series={series}
+          series={filteredSeries}
           type="bar"
           height={300}
         />
@@ -134,5 +182,7 @@ export default function OperationalTrendChart({ prestations = [], interventions 
 
 OperationalTrendChart.propTypes = {
   prestations: PropTypes.array,
-  interventions: PropTypes.array
+  interventions: PropTypes.array,
+  canPrestations: PropTypes.bool,
+  canMaintenance: PropTypes.bool
 };
